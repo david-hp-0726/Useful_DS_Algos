@@ -1,4 +1,32 @@
 class Solution {
+    /* 
+        Iterative DP
+    */
+    class Solution {
+        public int numTilings(int n) {
+            if (n <= 2) {
+                return n;
+            }
+            long curr = 2;
+            long prev = 1;
+            long partial = 1;
+
+            // f(n) = f(n - 1) + f(n - 2) + 2 * p(n - 1)
+            //      = f(n - 1) + f(n - 2) + 2 * (p(n - 3) + f(n - 2))
+            for (int i = 3; i <= n; i++) {
+                long temp = curr;
+                curr = (curr + prev + partial * 2) % 1_000_000_007;
+                partial = (prev + partial) % 1_000_000_007;
+                prev = temp;
+            }
+
+            return (int) curr;
+        }
+    }
+    
+    /* 
+        Recursive DP
+    */
     Map<Integer, Long> cacheP = new HashMap<>();
     Map<Integer, Long> cacheF = new HashMap<>();
 
