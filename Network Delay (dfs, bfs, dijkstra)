@@ -1,0 +1,199 @@
+class Solution {
+    /* 
+        dfs
+    */
+    public int networkDelayTime(int[][] times, int n, int k) {
+        // adj list
+        List<int[]>[] adj = new ArrayList[n + 1];
+        for (int i = 0; i <= n; i++) {
+            adj[i] = new ArrayList<>();
+        }
+        for (int[] edge : times) {
+            adj[edge[0]].add(new int[] {edge[1], edge[2]});
+        }
+
+        // slight optimization: sort neighboring nodes
+        for (int i = 1; i <= n; i++) {
+            Collections.sort(adj[i], (a, b) -> (a[1] - b[1]));
+        }
+
+        // timeTab keeps track of both whether the node has been visited
+        // and the min time it takes to reach that node
+        int[] timeTab = new int[n + 1];
+        Arrays.fill(timeTab, Integer.MAX_VALUE);
+
+        // run dfs
+        dfs(adj, timeTab, k, 0);
+
+        // traverse timeTab to get the min time
+        int minTime = Integer.MIN_VALUE;
+        for (int i = 1; i <= n; i++) {
+            // if there is any unreached, minTime becomes Integer.MAX_VALUE
+            minTime = Math.max(timeTab[i], minTime);
+        }
+
+        return (minTime != Integer.MAX_VALUE) ? minTime : -1;
+    }
+
+    private void dfs(List<int[]>[] adj, int[] timeTab, int node, int time) {
+        if (timeTab[node] <= time) {
+            return;
+        }
+
+        timeTab[node] = time;
+
+        if (adj[node] == null) {
+            return;
+        }
+
+        for (int[] next : adj[node]) {
+            dfs(adj, timeTab, next[0], time + next[1]);
+        }
+    }
+
+
+    /*
+        bfs
+    */
+    public int networkDelayTime(int[][] times, int n, int k) {
+        List<int[]>[] adj = new ArrayList[n + 1];
+        for (int i = 0; i <= n; i++) {
+            adj[i] = new ArrayList<>();
+        }
+        for (int[] edge : times) {
+            adj[edge[0]].add(new int[] {edge[1], edge[2]});
+        }
+
+        // get ready for bfs
+        int[] timeTab = new int[n + 1];
+        Arrays.fill(timeTab, Integer.MAX_VALUE);
+        Queue<int[]> bfs = new ArrayDeque<>();
+        bfs.add(new int[] {k, 0});
+
+        // run bfs
+        while (!bfs.isEmpty()) {
+            int[] node = bfs.remove();
+            if (timeTab[node[0]] <= node[1]) {
+                continue;
+            }
+
+            timeTab[node[0]] = node[1];
+
+            if (adj[node[0]] == null) {
+                continue;
+            }
+
+            for (int[] next : adj[node[0]]) {
+                bfs.add(new int[] {next[0], next[1] + node[1]});
+            }
+        }
+
+        int minTime = Integer.MIN_VALUE;
+        for (int i = 1; i <= n; i++) {
+            minTime = Math.max(minTime, timeTab[i]);
+        }
+
+        return (minTime != Integer.MAX_VALUE) ? minTime : -1;
+    }
+
+
+    /* 
+        dijkstra
+    */
+    public int networkDelayTime(int[][] times, int n, int k) {
+        List<int[]>[] adj = new ArrayList[n + 1];
+        for (int i = 0; i <= n; i++) {
+            adj[i] = new ArrayList<>();
+        }
+        for (int[] edge : times) {
+            adj[edge[0]].add(new int[] {edge[1], edge[2]});
+        }
+
+        int[] timeTab = new int[n + 1];
+        Arrays.fill(timeTab, Integer.MAX_VALUE);
+
+        Queue<int[]> pq = new PriorityQueue<>((a, b) -> (a[1] - b[1]));
+        pq.add(new int[] {k, 0});
+
+        while (!pq.isEmpty()) {
+            int[] node = pq.remove();
+            if (timeTab[node[0]] <= node[1]) {
+                continue;
+            }
+
+            timeTab[node[0]] = node[1];
+
+            if (adj[node[0]] == null) {
+                continue;
+            }
+
+            for (int[] next : adj[node[0]]) {
+                pq.add(new int[] {next[0], next[1] + node[1]});
+            }
+        }
+
+        int minTime = Integer.MIN_VALUE;
+        for (int i = 1; i <= n; i++) {
+            minTime = Math.max(minTime, timeTab[i]);
+        }
+
+        return (minTime != Integer.MAX_VALUE) ? minTime : -1;
+    }
+
+    /* 
+        iterative dijkstra
+    */
+    public int networkDelayTime(int[][] times, int n, int k) {
+        // create an adj list with 2D array
+        int[][] adj = new int[n + 1][n + 1];
+        for (int i = 1; i <= n; i++) {
+            Arrays.fill(adj[i], Integer.MAX_VALUE);
+        }
+
+        for (int[] edge : times) {
+            adj[edge[0]][edge[1]] = edge[2];
+        }
+
+        boolean[] visited = new boolean[n + 1];
+        int[] timeTab = new int[n + 1];
+        Arrays.fill(timeTab, Integer.MAX_VALUE);
+        timeTab[k] = 0;
+
+        // for every iteration, look for the closest node to be the source
+        // and update its distance with all adjacent nodes
+        for (int i = 0; i < n; i++) {
+            // search for source node that takes the smallest time to reach
+            int source = -1, time = Integer.MAX_VALUE;
+            for (int node = 1; node <= n; node++) {
+                if (!visited[node] && timeTab[node] < time) {
+                    time = timeTab[node];
+                    source = node;            
+                }
+            }
+
+            if (source == -1) {
+                continue;
+            }
+
+            visited[source] = true;
+
+            // update timeTab accordingly
+            for (int next = 1; next <= n; next++) {
+                // this is important since Integer.MAX_VALUE + 1 can give you
+                // negative values 
+                if (visited[next] || adj[source][next] == Integer.MAX_VALUE) {
+                    continue;
+                }
+                int cost = adj[source][next] + time;
+                timeTab[next] = Math.min(cost, timeTab[next]);
+            }
+        }
+
+        int minTime = Integer.MIN_VALUE;
+        for (int node = 1; node <= n; node++) {
+            minTime = Math.max(timeTab[node], minTime);
+        }
+
+        return (minTime != Integer.MAX_VALUE) ? minTime : -1;
+    }
+}
