@@ -1,0 +1,103 @@
+class Solution {
+    /* 
+        solution 1: dp + memo (n^2)
+    */
+    int[] dp;
+
+    public int jump1(int[] nums) {
+        dp = new int[nums.length];
+        return dfs(nums, 0);
+    }
+
+    private int dfs(int[] nums, int index) {
+        if (index == nums.length - 1) {
+            return 0;
+        }
+        if (index + nums[index] >= nums.length - 1) {
+            return 1;
+        }
+        if (dp[index] != 0) {
+            return dp[index];
+        }
+
+        int numJumps = nums.length;
+        for (int i = index + 1; i <= index + nums[index]; i++) {
+            numJumps = Math.min(dfs(nums, i), numJumps);
+        }
+        dp[index] = 1 + numJumps;
+
+        return dp[index];
+    }
+
+
+    /* 
+        solution 2: iterative dp (n^2)
+    */
+    public int jump2(int[] nums) {
+        int[] dp = new int[nums.length];
+
+        for (int i = nums.length - 2; i >= 0; i--) {
+            int minJump = nums.length;
+            for (int j = i + 1; j <= nums[i] + i && j < nums.length; j++) {
+                if (dp[j] < minJump) {
+                    minJump = dp[j];
+                }
+            }
+            dp[i] = 1 + minJump;
+        }
+
+        return dp[0];
+    }
+
+
+    /* 
+        solution 3: greedy (n)
+    */
+    public int jump3(int[] nums) {
+        return greedy(nums, 0);
+    }
+
+    private int greedy(int[] nums, int index) {
+        if (nums.length - 1 == index) {
+            return 0;
+        }
+
+        if (index + nums[index] >= nums.length - 1) {
+            return 1;
+        }
+
+        // jump to the next grid that will bring us the furthest toward goal
+        int furthestLeap = 1, furthestIndex = index + 1;
+        for (int i = index + 1; i <= index + nums[index]; i++) {
+            int currLeap = i + nums[i];
+            if (currLeap > furthestLeap) {
+                furthestIndex = i;
+                furthestLeap = i + nums[i];
+            }
+        }
+
+        return 1 + greedy(nums, furthestIndex);
+    }
+
+    /* 
+        solution 4: bfs (n)
+    */
+    public int jump4(int[] nums) {
+        // Group indices based on the minimum number of jumps to reach them.
+        // For every group, compute the maximum leap we can take from there,
+        // and all indices reacheable within the maximum leap will be our 
+        // next group
+        int currLevelEnd = 0, nextLevelEnd = 0, numJump = 0;
+
+        for (int i = 0; i < nums.length; i++) {
+            // whenever we've reached the end of one layer, we make one jump
+            if (i > currLevelEnd) {
+                currLevelEnd = nextLevelEnd;
+                numJump++;
+            }
+            nextLevelEnd = Math.max(nextLevelEnd, nums[i] + i);
+        }
+
+        return numJump;
+    }
+}
