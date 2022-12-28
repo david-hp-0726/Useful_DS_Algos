@@ -73,4 +73,46 @@ class Solution {
         cacheP.put(n, res);
         return res;
     }
+    
+    /*
+        Matrix Multiplication
+    */
+    class Solution {
+        long[][] base_case = new long[][] {
+            {1, 1, 2}, // f(3) = (f(2) == 2)+(f(1) == 1)+(p(1) == 1)
+            {1, 0, 0}, // f(2) = (f(2) == 2)
+            {0, 1, 1}  // p(3) =             (f(1) == 1)+(p(1) == 0)
+        };
+        int SIZE = 3;
+
+        public int numTilings(int n) {
+            if (n <= 2) {
+                return n;
+            }
+
+            // we will multiply our base case by our transition formula
+            // n - 2 times
+            long[][] product = base_case;
+            for (int i = 1; i < n - 2; i++) {
+                product = multiply(product);
+            }
+
+            return (int) ((product[0][0] * 2 + product[0][1] * 1 + product[0][2] * 1) % 1000000007);
+        }
+
+        private long[][] multiply(long[][] matrix) {
+            long[][] res = new long[SIZE][SIZE];
+            for (int row = 0; row < SIZE; row++) {
+                for (int col = 0; col < SIZE; col++) {
+                    long currSum = 0;
+                    for (int i = 0; i < SIZE; i++) {
+                        currSum = (currSum + matrix[row][i] * base_case[i][col]) % 1000000007;
+                    }
+                    res[row][col] = currSum;
+                }
+            }
+
+            return res;
+        }
+    }
 }
