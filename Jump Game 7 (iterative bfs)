@@ -1,0 +1,108 @@
+class Solution {
+    /*
+        bfs with array
+    */
+    // For every reacheable index i, search the range between
+    // (i+minJump) to (i+maxJump), we label every 0-valued index in that
+    // range as reacheable. And for every subsequent index i+k we do the
+    // same thing, searching from (i+k+minJump) to (i+k+maxJump).
+    // Notice here we are doing repetitive work, since 
+    // the next range(i+k+minJump) and (i+k+maxJump) can overlap with the
+    // previous interval. Ideally, when this overlap happens, we need to
+    // replace the leftbound of our next search range (i+k+minJump) 
+    // with (i+maxJump+1), which is what the following code is doing
+
+    public boolean canReach(String s, int minJump, int maxJump) {
+        int n = s.length();
+        boolean[] reacheable = new boolean[n];
+        reacheable[0] = true;
+
+        int low = 0, high = 0, maxReachThusFar = 0;
+        for (int i = 0; i < n; i++) {
+            if (reacheable[i]) {
+                low = Math.max(i + minJump, maxReachThusFar + 1);
+                high = Math.min(i + maxJump, n - 1);
+                
+                for (int j = low; j <= high; j++) {
+                    if (s.charAt(j) == '0') {
+                        reacheable[j] = true;
+                    }
+                }
+
+                maxReachThusFar = Math.max(maxReachThusFar, i + maxJump);
+            }
+        }
+
+        return reacheable[n - 1];
+    }
+    
+    
+    /*
+        bfs with queue
+    */
+    public boolean canReach1(String s, int minJump, int maxJump) {   
+        Queue<Integer> queue = new ArrayDeque<>();
+        int maxReachThusFar = 0, n = s.length();
+
+        queue.add(0);
+        while (!queue.isEmpty()) {
+            int curr = queue.remove();
+            if (curr == n - 1) {
+                return true;
+            }
+            
+            int low = Math.max(curr + minJump, maxReachThusFar);
+            int high = Math.min(curr + maxJump, n - 1);
+
+            for (int i = low; i <= high; i++) {
+                if (s.charAt(i) == '0') {
+                    queue.add(i);
+                }
+            }
+
+            maxReachThusFar = Math.max(curr + maxJump + 1, maxReachThusFar);
+        }
+
+        return false;
+    }
+
+
+    /*
+        Iterate through the String, making sure every 0
+        can be reached from a previous 0;
+    */
+    public boolean canReach2(String s, int minJump, int maxJump) {
+        int n = s.length();
+        Queue<Integer> queue = new ArrayDeque<>();
+        queue.add(0);
+
+        for (int i = 1; i < n; i++) {
+            if (s.charAt(i) == '0') {
+                // If a previous 0 can't jump to even the current 0,
+                // then it is surely useless for any future 0's, 
+                // so we can safely discard it
+                while (!queue.isEmpty() && queue.peek() < i - maxJump) {
+                    queue.poll();
+                }
+
+                // If the current 0 is unreacheable from the all previous 0's
+                if (queue.isEmpty()) {
+                    return false;
+                }
+
+                int prev = queue.peek();
+
+                // Still, there is one more condition we need to check:
+                //      whether the current index is greater than prev + minJump
+                if (prev + minJump <= i) {
+                    if (i == n - 1) {
+                        return true;
+                    }
+                    queue.add(i);
+                }
+            }
+        }
+
+        return false;
+    }
+}
