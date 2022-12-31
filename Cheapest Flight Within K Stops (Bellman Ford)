@@ -1,0 +1,45 @@
+class Solution {
+    // Bellman Ford's Algo: A single graph connecting the current node to all 
+    //other nodes is a simple graph connecting all nodes in a straight line 
+    //without any cycles.
+
+    // ---------------|
+    // |    v----|    v
+    // a -> b -> c -> d -> e
+    //      ^---------|
+
+    // Imagine performing a bfs on the graph above, where a is connected to bcde 
+    // by many other paths, and the graph is showing the shortest of all of them.
+    // Then regardless of how many other paths there are to e, we are guaranteed
+    // to discover this shortest path (a->b->c->d->e) one iteration at a time
+    // in a total of n - 1 iterations.
+
+    public int findCheapestPrice(int n, int[][] flights, int src, int dst, int k) {
+        int[] minDist = new int[n];
+        Arrays.fill(minDist, Integer.MAX_VALUE);
+        minDist[src] = 0;
+
+        // If k is 1, then we can go at most two steps to get to dst
+        for (int i = 0; i <= k; i++) {
+            int[] temp = minDist.clone();
+            for (int[] flight : flights) {
+                int source = flight[0];
+                int dest = flight[1];
+
+                // If the source is not discovered by our bfs yet
+                if (minDist[source] == Integer.MAX_VALUE) {
+                    continue;
+                }
+                
+                // Notice if we don't have a temp array, we might
+                // end up updating a node that's not yet reacheable
+                // and treat it as reacheable in the same iteration
+                temp[dest] = Math.min(temp[dest], minDist[source] + flight[2]);
+            }
+
+            minDist = temp;
+        }
+
+        return (minDist[dst] == Integer.MAX_VALUE) ? -1 : minDist[dst];
+    }
+}
