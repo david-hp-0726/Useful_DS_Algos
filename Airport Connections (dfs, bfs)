@@ -1,0 +1,156 @@
+import java.util.*;
+
+class Program {
+  /*
+    Summary
+  */
+  // step 1: construct an adjacency list
+  // step 2: bfs all airports that are unreacheable
+  // step 3: for each airport, count the number of unreacheable airports
+  //          it unlocks
+  // step 4: rank the airports based on number of airports unlocked;
+  //          essentially, this will enable us to find all 0-degree nodes--
+  //          airports that cannot be reached from any other airports
+  //          which are guaranteed to unlock more airports than any
+  //          any airport they unlock
+
+  /*
+    Private Class
+  */
+  private static class Airport {
+    boolean reacheable;
+    List<String> reacheableAirports;
+    List<String> unreacheableAirports;
+    int numUnlocked;
+
+    public Airport() {
+      reacheable = false;
+      reacheableAirports = new ArrayList<>();
+      unreacheableAirports = new ArrayList<>();
+      numUnlocked = 0;
+    }
+    
+  }
+
+  /*
+    Private Fields
+  */
+  static int n;
+  static Map<String, Airport> adj;
+
+  /*
+    Algorithm
+  */
+  public static int airportConnections(
+      List<String> airports, List<List<String>> routes, String startingAirport) {
+    // step 1: creating the adjacency list
+    n = airports.size();
+    adj = new HashMap<>();
+
+    for (String airport : airports) {
+      adj.put(airport, new Airport());
+    }
+
+    for (List<String> route : routes) {
+      String source = route.get(0);
+      String dest = route.get(1);
+      adj.get(source).reacheableAirports.add(dest);
+    }
+
+    // step 2: bfs to locate all unreacheable airports
+    // find all reacheable ones
+    Set<String> reacheable = new HashSet<>();
+    Queue<String> bfs = new ArrayDeque<>();
+    bfs.add(startingAirport);
+    while (!bfs.isEmpty()) {
+      String airport = bfs.remove();
+      Airport curr = adj.get(airport);
+      reacheable.add(airport);
+      curr.reacheable = true;
+      
+      for (String next : curr.reacheableAirports) {
+        if (!reacheable.contains(next)) {
+          bfs.add(next);
+        }
+      }
+    }
+
+    // find all unreacheable ones
+    Set<String> unreacheable = new HashSet<>();
+    for (String airport : airports) {
+      if (!reacheable.contains(airport)) {
+        unreacheable.add(airport);
+      }
+    }
+
+    // step 3: count the number of previously unreacheable
+    // airports unlocked by each airport
+    Set<String> visited = new HashSet<>();
+    for (String airport : airports) {
+      if (airport != startingAirport) {
+        countAirportsUnlocked(airport, unreacheable, visited);
+      }
+    }
+
+    // step 4: rank the airports based on the number of initially
+    //          unreacheable airports they unlock
+
+    // greedy search: for every iteration we'll start from the
+    // airport that unlocks the most airports
+    int numConnections = 0;
+    Set<String> unlocked = new HashSet<>();
+    while (unlocked.size() < unreacheable.size()) {
+      String bestAirport = null; 
+      int mostUnlocked = -1;
+      
+      for (String airport : airports) {
+        Airport curr = adj.get(airport);
+        if (unreacheable.contains(airport) && 
+            !unlocked.contains(airport) && 
+            mostUnlocked <= curr.numUnlocked) {
+          mostUnlocked = curr.numUnlocked;
+          bestAirport = airport;
+        }
+      }
+
+      markAirportsUnlocked(bestAirport, unlocked);
+      numConnections++;
+    }
+
+    return numConnections;
+  }
+
+  /*
+    Private Methods
+  */
+  private static List<String> countAirportsUnlocked(String curr, Set<String> unreacheable, Set<String> visited) {
+    Airport airport = adj.get(curr);
+    if (visited.contains(curr)) { // cycle detection
+      return airport.unreacheableAirports;
+    }
+    visited.add(curr);
+    
+    List<String> res = new ArrayList<>();
+    if (unreacheable.contains(curr)) {
+      res.add(curr);
+    }
+
+    for (String next : airport.reacheableAirports) {
+      res.addAll(countAirportsUnlocked(next, unreacheable, visited));
+    }
+
+    for (String unlocked : res) {
+      airport.unreacheableAirports.add(unlocked);
+    }
+
+    airport.numUnlocked = airport.unreacheableAirports.size();
+    return res;
+  }
+
+  private static void markAirportsUnlocked(String curr, Set<String> unlocked) {
+    Airport airport = adj.get(curr);
+    for (String unlockedAirport : airport.unreacheableAirports) {
+      unlocked.add(unlockedAirport);
+    }
+  }
+}
