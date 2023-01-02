@@ -1,0 +1,100 @@
+import java.util.*;
+
+class Program {
+    // The goal is to find a cycle where taking the product of all edges
+    // results in a value greater than 1 (i.e. a positive multiplication cycle
+    // where we are able to use 1 usd to obtain more than 1 usd). 
+
+    // However, a typical graph algo will only allow us to take the sum
+    // of graph weights, so to turn multiplication into addition, we need
+    // to take advantage of the log property of log(a*b) = log(a) + log(b)
+
+    // Specifically, we are interested in finding out if multiplying 
+    // the exchange rates of all currencies in a cycle give us a positive
+    // exchange rate
+    // a*b*...*z > 1 = 
+    // log(a*b*...*z) > log(1) = 
+    // log(a*b*...*z) > 0 = 
+    // -log(a*b*...*z) < 0 = 
+    // (-log(a))+(-log(b))+...+(-log(z)) < 0
+
+    // Essentially, we are interested in seeing if there is a negative cycle.
+    // To detect a negative cycle, then, is where Bellman Ford's algo comes 
+    // into play. Bellman Ford's algo computes the shortest path from a source
+    // node to every other node in the graph. However, there is one scenario
+    // where Bellman Ford's algo does not work -- when a negative cycle
+    // exists, which does not have a minimal distance since the more you
+    // travel the negative cycle the less weight the edges have. Therefore,
+    // by simply looking at whether after performing Bellman Ford's algo,
+    // the graph's weights can still be updated (meaning we are unable to 
+    // find the shortest distances), we can give a difinitive answer to
+    // the question.
+
+    // Bellman Ford's Algo: A single graph connecting the current node to all 
+    //other nodes is a simple graph connecting all nodes in a straight line 
+    //without any cycles.
+
+    // ---------------|
+    // |    v----|    v
+    // a -> b -> c -> d -> e
+    //      ^---------|
+
+    // Imagine performing a bfs on the graph above, where a is connected to bcde 
+    // by many other paths, and the graph is showing the shortest of all of them.
+    // Then regardless of how many other paths there are to e, we are guaranteed
+    // to discover this shortest path (a->b->c->d->e) one iteration at a time
+    // in a total of n - 1 iterations.
+  public boolean detectArbitrage(ArrayList<ArrayList<Double>> exchangeRates) {
+    int n = exchangeRates.size();
+    double[][] graph = new double[n][n];
+
+    // take the negative log of all weights
+    for (int i = 0; i < n; i++) {
+      for (int j = 0; j < n; j++) {
+        graph[i][j] = -1.0 * Math.log(exchangeRates.get(i).get(j));
+      }
+    }
+
+    // implement Bellman Ford's algo
+    double[] minDist = new double[n];
+    Arrays.fill(minDist, Integer.MAX_VALUE);
+    minDist[0] = 0;
+
+    // perform a bfs where in each iteration we update the mininum
+    // distance it takes to get to every reacheable node
+    for (int i = 0; i < n - 1; i++) {
+      double[] temp = new double[n];
+
+      for (int node = 0; node < n; node++) {
+        // if a node is currently unreacheable
+        if (minDist[node] == Integer.MAX_VALUE) {
+          continue;
+        }
+
+        // otherwise, update the min distances
+        for (int next = 0; next < n; next++) {
+          if (next == node) {
+            continue;
+          }
+          if (minDist[node] + graph[node][next] < temp[node]) {
+            temp[next] = minDist[node] + graph[node][next];
+          }
+        }
+        minDist = temp;
+      }
+    }
+    // perform the Bellman Ford's algo once more to detect negative cycle
+    boolean hasCycle = false;
+    for (int node = 0; node < n; node++) {
+      for (int next = 0; next < n; next++) {
+        if (next == node) {
+          continue;
+        }
+        if (minDist[node] + graph[node][next] < minDist[next]) {
+          hasCycle = true;
+        }
+      }
+    }
+    return hasCycle;
+  }
+}
