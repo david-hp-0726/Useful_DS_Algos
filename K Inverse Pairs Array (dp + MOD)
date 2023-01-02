@@ -1,0 +1,67 @@
+class Solution {
+    /*
+        recursive dp
+    */
+
+    Integer[][] memo = new Integer[1001][1001];
+    int M = 1000000007;
+
+    public int kInversePairs1(int n, int k) {
+        return dp(n, k);
+    }
+
+    private int dp(int n, int k) {
+        // notice if we don't do do this for memo[1][0]
+        // memo[1][1...k] will become 1, and these extra value
+        // will skew the result of all subsequent computations
+        if (n == 1 && k != 0) {
+            return 0;
+        }
+
+        if (k == 0) {
+            return 1;
+        }
+
+        if (memo[n][k] != null) {
+            return memo[n][k];
+        }
+
+        // when computing count(4, 5), we cannot include count(4, 1)
+        int minPrevInv = (k - n >= 0) ? dp(n - 1, k - n) : 0;
+        
+        // notice we need to perform 2 modular operations since we 
+        // are adding up 3 values, and the sum of any two of them can
+        // exceed the limit
+        int val = (M + dp(n - 1, k) - minPrevInv) % M;
+        memo[n][k] = (dp(n, k - 1) + val) % M;
+
+        return memo[n][k];
+    }
+
+
+    /*
+        iterative dp
+    */
+    public int kInversePairs(int n, int k) {
+        int[] curr = new int[1001];
+        int[] prev = new int[1001];
+        int M = 1000000007;
+        
+        for (int size = 1; size <= n; size++) {
+            curr = new int[1001];
+            curr[0] = 1;
+
+            if (size > 1) {
+                for (int numInv = 1; numInv <= k; numInv++) {
+                    int minPrevInv = (numInv - size >= 0) ? prev[numInv - size] : 0;
+                    int prevInv = (M + prev[numInv] - minPrevInv) % M;
+                    curr[numInv] = (curr[numInv - 1] + prevInv) % M;
+                }
+            }
+
+            prev = curr;
+        }
+
+        return curr[k];
+    }
+}
