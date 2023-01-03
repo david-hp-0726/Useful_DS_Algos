@@ -1,0 +1,145 @@
+import java.util.*;
+
+class Program {
+  public static List<Integer> mergeSortedArrays(List<List<Integer>> arrays) {
+    MinHeap pq = new MinHeap();
+    for (List<Integer> array : arrays) {
+      pq.insert(new HeapArray(array));
+    }
+
+    List<Integer> res = new ArrayList<>();
+    while (!pq.isEmpty()) {
+      res.add(pq.getMinVal());
+    }
+    return res;
+  }
+
+  private static class HeapArray implements Comparable<HeapArray> {
+    List<Integer> arr;
+    int idx;
+
+    public HeapArray(List<Integer> a) {
+      arr = a;
+      idx = 0;
+    }
+
+    public boolean isEmpty() {
+      return arr.isEmpty() || idx == arr.size();
+    }
+
+    public int compareTo(HeapArray that) {
+      int thisVal = (arr.isEmpty()) ? Integer.MIN_VALUE : arr.get(idx);
+      int thatVal = (that.arr.isEmpty()) ? Integer.MIN_VALUE : that.arr.get(that.idx);
+      return thisVal - thatVal;
+    }
+
+    public int getVal() {
+      if (isEmpty()) {
+        throw new NoSuchElementException();
+      }
+      return arr.get(idx++);
+    }
+  }
+
+  private static class MinHeap {
+    HeapArray[] heap;
+    int capacity;
+    int n;
+    
+    public MinHeap () {
+      capacity = 4;
+      n = 0;
+      heap = new HeapArray[capacity];
+    }
+
+    public int getMinVal() {
+      if (isEmpty()) {
+        throw new NoSuchElementException();
+      }
+      
+      int val = heap[0].getVal();
+      if (heap[0].isEmpty()) {
+        removeMin();
+      }
+      else {
+        sink(0);
+      }
+      return val;
+    }
+
+    public void insert(HeapArray arr) {
+      heap[n] = arr;
+      swim(n++);
+      autoResize();
+    }
+
+    private void removeMin() {
+      n--;
+      swap(0, n);
+      heap[n] = null;
+      sink(0);
+      autoResize();
+    }
+
+    private boolean isEmpty() {
+      return n == 0 || heap[0].isEmpty();
+    }
+
+    private void sink(int idx) {
+      while (idx < capacity / 2 - 1) { 
+        HeapArray root = heap[idx];
+        HeapArray left = heap[idx * 2 + 1];
+        HeapArray right = heap[idx * 2 + 2];
+        int swapIdx = idx * 2 + 1;
+        
+        if (left != null && right != null && left.compareTo(right) > 0) {
+          swapIdx++;
+        }
+
+        if (heap[swapIdx] != null && root.compareTo(heap[swapIdx]) > 0) {
+          swap(idx, swapIdx);
+          idx = swapIdx;
+        }
+        else {
+          break;
+        }
+      }
+    }
+
+    private void swim(int idx) {
+      while (idx > 0) { 
+        int swapIdx = (idx - 1) / 2;
+        HeapArray child = heap[idx];
+        HeapArray root = heap[swapIdx];
+
+        if (child.compareTo(root) < 0) {
+          swap(idx, swapIdx);
+          idx = swapIdx;
+        }
+        else {
+          break;
+        }
+      }
+    }
+
+    private void autoResize() {
+      if (n == capacity || n == capacity / 4) {
+        int newCapacity = (n == capacity) ? capacity * 2 : capacity / 2;
+        HeapArray[] newHeap = new HeapArray[newCapacity];
+
+        for (int i = 0; i < n; i++) {
+          newHeap[i] = heap[i];
+        }
+
+        capacity = newCapacity;
+        heap = newHeap;
+      }
+    }
+
+    private void swap(int idx1, int idx2) {
+      HeapArray temp = heap[idx1];
+      heap[idx1] = heap[idx2];
+      heap[idx2] = temp;
+    }
+  }
+}
