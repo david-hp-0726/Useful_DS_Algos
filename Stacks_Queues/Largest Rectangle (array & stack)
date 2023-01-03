@@ -1,0 +1,104 @@
+class Solution {
+    // We can divide this problem into subproblems of computing the maximum range
+    // we can extend each individual rectangles. To do so, we simply have to find 
+    // the left bound (closest shorter building to the left) and the right bound
+    // (closest shorter building to the right). There are two implementations.
+
+    /*
+        solution 1: arrays (n^2)
+    */
+    public int largestRectangleArea2(int[] heights) {
+        int n = heights.length;
+        int[] closestLeftBound = new int[n];
+        int[] closestRightBound = new int[n];
+        closestLeftBound[0] = -1;
+        closestRightBound[n - 1] = n;
+
+        for (int i = 1; i < n; i++) {
+            int leftBound = i - 1;
+            while (leftBound >= 0 && heights[leftBound] >= heights[i]) {
+                // path compression
+                leftBound = closestLeftBound[leftBound];
+            }
+            closestLeftBound[i] = leftBound;
+        }
+
+        for (int i = n - 2; i >= 0; i--) {
+            int rightBound = i + 1;
+            while (rightBound < n && heights[rightBound] >= heights[i]) {
+                rightBound = closestRightBound[rightBound];
+            }
+            closestRightBound[i] = rightBound;
+        }
+
+        int res = 0;
+        for (int i = 0; i < n; i++) {
+            int height = heights[i];
+            int range = closestRightBound[i] - closestLeftBound[i] - 1;
+            res = Math.max(res, height * range);
+        }
+
+        return res;
+    }
+
+    /*
+        solution 2: stack (n)
+    */
+    private class Rectangle {
+        int height;
+        int index;
+
+        public Rectangle (int h, int i) {
+            height = h; 
+            index = i;
+        }
+    }
+
+    public int largestRectangleArea(int[] heights) {
+        Stack<Rectangle> stack = new Stack<>();
+        int n = heights.length, res = 0;
+
+        // for every building there are only two possible scenarios
+        for (int i = 0; i < n; i++) {
+            int height = heights[i];
+
+            // either it's taller than the previous building, and we can
+            // continue to extend our rectangle with the previous height
+            if (stack.empty() || stack.peek().height <= height) {
+                stack.push(new Rectangle(height, i));
+            }
+            // or it's shorter than the previous building, and we 
+            // can no longer extend our rectangle with the previous height
+            // and we have to compute the max area we can get with previous
+            // height and move on with current height
+            else {
+                int leftBound = i;
+                int rightBound = i;
+                while (!stack.empty() && stack.peek().height > height) {
+                    Rectangle prev = stack.pop();
+                    int prevHeight = prev.height;
+                    leftBound = prev.index; 
+                    // technically it's leftBound - 1, but we'd +1 back anyway
+                    res = Math.max(res, (rightBound - leftBound) * prevHeight);
+                }
+
+                // notice when we are popping rectangles, we are simultaneously
+                // eliminating possible left bounds, thereby extending the 
+                // left bound from i to leftBound
+                stack.push(new Rectangle(height, leftBound));
+            }
+        }
+
+        // note that if the buildings' heights are in monotonically increasing
+        // order, we may never pop a single building, thus we need a cornercase
+        while (!stack.empty()) {
+            Rectangle rect = stack.pop();
+            int height = rect.height;
+            int range = n - rect.index;
+            res = Math.max(res, height * range);
+        }
+
+        return res;
+    
+    }
+}
