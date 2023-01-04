@@ -1,0 +1,214 @@
+class Solution {
+    /*
+        Defining The Problem
+    */
+    // Let's break the problem down into subproblems of drop(K, N) where
+    // K = number of eggs left
+    // N = number of floors left
+
+    // For each subproblem, we want to find the combination of K and N that
+    // minimizes the drop(K, N). 
+
+    /*
+        Algorithm
+    */
+    // Since the number of eggs K is constant, we only need to exhaust all
+    // possible values n for N to find the optimal drop. So we go from drop(K, 0) 
+    // to drop(K, N). For each drop, there are only two possible outcomes:
+    // 1. The egg breaks, we lose one egg, and we need to look downward for
+    //      a lower floor where the egg does not break = drop(K - 1, n - 1)
+    // 2. The egg survives, we don't lose any egg, and we want to look upward for
+    //      a higher floor where the egg does not break = drop(K, N - n)
+    // Since we have no control over the outcomes, we just have to assume the 
+    // worst and take the maximum of drop(K - 1, n - 1) and drop(K, N - n)
+    // each time. And then we will take the minimum floor n that minimizes
+    // the value of drop(K, N) 
+
+    // Notice that what matters is not the starting floor but the number of
+    // floors we have, since searching through floors 0 to 3 is no different
+    // than searching through floors 2 to 5
+
+    /*
+        Base Cases
+    */
+    // 1. When there are 0 floors, the number of drop we need is 0
+    // 2. When there are only 1 egg, our only option is to conduct
+    //     a brute force search starting from 0 and going to N
+    
+    /*  
+      Recursive Solution
+    */
+    public int superEggDrop2(int k, int n) {
+        return drop(k, n);
+    }
+
+    Map<Integer, Integer> memo = new HashMap<>();
+    private int drop(int k, int n) {
+        if (memo.containsKey(n * 100 + k)) {
+            return memo.get(n * 100 + k);
+        }
+
+        int res = 0;
+        if (n == 0) {
+            // base 1
+            res = 0;
+        }
+        else if (k == 1) {
+            // base 2
+            res = n;
+        }
+        else {
+            // regular case: binary search
+            int high = n;
+            int low = 1; 
+
+            while (low + 1 < high) {
+                int mid = low + (high - low) / 2;
+                int broken = drop(k - 1, mid - 1);
+                int intact = drop(k, n - mid);
+                // It's possible that "broken" will be computed when there
+                // are in fact 0 eggs left, leading to an underestimation.
+                // That's fine since we are taking the maximum of the two
+
+                // The minimal of max(broken, intact) will happen when
+                // "broken" equals "intact". As to why this is the
+                // case, the following gives the explanation.
+                if (broken == intact) {
+                    low = high = mid;
+                    break;
+                }
+                else if (broken > intact) {
+                    // "broken > intact" essentially tells us that if our
+                    // egg breaks at this floor, we would need to perform
+                    // more drops than if our egg didn't break at this floor
+
+                    // In other words, in terms of narrowing down our search,
+                    // breaking the egg at this floor is less helpful than
+                    // not breaking the egg. Thus if we choose to break our egg
+                    // at this floor, we are gambling on the probability that
+                    // the egg will survive the drop and successfully rule out
+                    // the corresponding set of floors from our search scope.
+                    // However, the question is asking for an algorithm that
+                    // guarantees the minimal number of drops regardless of the
+                    // outcome of each drop. Thus, whenever we have to two 
+                    // possible scenarios we assume the worst
+                    
+                    // Conclusion:
+                    // We want to find the point where max(broken, intact)
+                    // best helps us to limit the scope of our next search, 
+                    // which happens when broken = intact. Currently,
+                    // broken > intact, so we want to reduce broken.
+                    // Since whenever we break the egg, we need to search the
+                    // range below the current floor, we want to narrow this
+                    // range by moving our next floor downward
+                    high = mid;
+                } 
+                else {
+                    // By analogous reasoning, if "intact > broken", then we
+                    // would want to narrow down our next search by shortening
+                    // the range above our next floor
+                    low = mid;
+                }
+            }
+
+            res = 1 + Math.min(Math.max(drop(k - 1, low - 1), drop(k, n - low)),
+                        Math.max(drop(k - 1, high - 1), drop(k, n - high)));
+        }
+        memo.put(100 * n + k, res);
+
+        return res;
+    }
+
+
+    /*
+        Alternative Approach
+    */
+    // Notice in the previous solution, for each problem drop(K, N) we
+    // are finding the minimal floor n such that, after we dropped our
+    // egg there, the scope of our next search is minimized regardless of 
+    // what the outcome is. 
+
+    // Now, formulas aside, imagine we are trying to find the answer to
+    // 10 floors with 2 eggs. The optimal strategy would be to use our
+    // 1st egg to narrow down the range of our next search, and use
+    // the 2nd egg to exhaustively search that range. And by striking
+    // a balance between dropping our 1st egg too many times and dropping
+    // our 2nd egg too many times, we can find the solution. In this case,
+    // the answer is 4
+    // Drop 1 (range [1, 10])
+    //                     broken -> 1 + drop(1, 3) = 4
+    // drop(2, 10), n = 4, floor = 4
+    //                     intact -> 1 + drop(2, 6) = 4
+
+    // Drop 2 if drop 1 didn't break (range [5, 10])
+    //                     broken -> 1 + drop(1, 2) = 3
+    // drop(2, 6), n = 3, floor = 7
+    //                     intact -> 1 + drop(2, 3) = 3
+
+    // Drop 3 if drop 2 didn't break (range [8, 10])
+    //                     broken -> 1 + drop(1, 1) = 2
+    // drop(2, 3), n = 2, floor = 9
+    //                     intact -> 1 + drop(1, 1) = 2
+
+    // There is one key insight in this example from comparing drop(2, 10), 
+    // drop(2, 6), and drop(2, 3). Notice that their n values increase as 
+    // N, the total number of floors, increase. Essentially, it shows that
+    // the more floors we have, the less conservative we should be with our
+    // 1st drop, so that we don't end up dropping our 1st egg too many times
+    // trying to narrow down our 2nd egg's range. 
+
+    // 1st Conclusion: 
+    // If we move from drop(2, 3) to drop(2, 6), with the knowledge that the
+    // optimal dropping floor for drop(2, 3) is 2, we don't need to search
+    // anywhere below that, and thus when trying to find the optimal floor
+    // for drop(2, 6) we can simply start from n = 2. Applying the same logic,
+    // we know that drop(2, 10) won't have an answer anywhere below 3
+
+    // Now that we've put a lowerbound to our search, it might be curious
+    // as to whether an upperbound can be found. The answer is yes. Going back
+    // to the previous example drop(2, 10), an intuitive answer to this problem
+    // might be n = 5, but doing so would lead to a worst-case scenario where
+    // we potentially need to make 4 drops to with our 2nd egg had our 1st egg
+    // broke. By the same process, we can easily deduce that dropping our egg
+    // at floor 6 would lead to a even worse worst-case scenario than n = 5.
+
+    // Drop 1 (range [1, 10])
+    //                     broken -> 1 + drop(1, 4) = 5
+    // drop(2, 10), n = 5, floor = 5
+    //                     intact -> 1 + drop(2, 5) = ?
+
+    // Final Conclusion:
+    // We can get the lowerbound for our search by keeping a record of the 
+    // optimal floor from the previous search with the same number of eggs.
+    // Ex: drop(2, 10) lowerbound = n where drop(2, N-n) is Max(drop(2, 1...9))
+    // We can get the upperbound for our search by finding the optimal floor
+    // from the previous search with 1 fewer egg
+    // Ex: drop(2, 10) upperbound = n such that drop(1, n-1) = drop(2, N-n)
+    public int superEggDrop(int numEggs, int numFloors) {
+        int[] oneLessEgg = new int[numFloors + 1]; // start with 1 egg
+        int[] curr = new int[numFloors + 1]; // start with 2 egg
+
+        // base case 2
+        for (int floor = 1; floor <= numFloors; floor++) {
+            oneLessEgg[floor] = floor;
+        }
+
+        for (int egg = 2; egg <= numEggs; egg++) {
+            // base case 1
+            curr[1] = 1;
+            int prevFloor = 1;
+
+            for (int floor = 2; floor <= numFloors; floor++) {
+                while (prevFloor <= floor && Math.max(oneLessEgg[prevFloor - 1], curr[floor - prevFloor]) > Math.max(oneLessEgg[prevFloor], curr[floor - prevFloor - 1])) {
+                    prevFloor++;
+                }
+                curr[floor] = 1 + Math.max(oneLessEgg[prevFloor - 1], curr[floor - prevFloor]);
+            }
+
+            oneLessEgg = curr;
+            curr = new int[numFloors + 1];
+        }
+
+        return oneLessEgg[numFloors];
+    }
+}
