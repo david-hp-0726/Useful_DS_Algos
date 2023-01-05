@@ -1,0 +1,88 @@
+import java.util.*;
+
+class Program {
+  public static boolean knuthMorrisPrattAlgorithm(String string, String substr) {
+    int n = string.length(), m = substr.length();
+    int[] lps = new int[m];
+
+    // building longest-prefix-suffix array
+    int prefixIdx = 0;
+    int suffixIdx = 1;
+    while (suffixIdx < m) {
+      char pre = substr.charAt(prefixIdx);
+      char suf = substr.charAt(suffixIdx);
+
+      if (pre == suf) {
+        int prefixLen = prefixIdx + 1;
+        lps[suffixIdx] = prefixLen;
+        suffixIdx++;
+        prefixIdx++;
+      }
+      else if (prefixIdx > 0) {
+        prefixIdx = lps[prefixIdx - 1];
+      }
+      else {
+        suffixIdx++;
+      }
+    }
+
+    // matching pattern
+    int strIdx = 0;
+    int subIdx = 0;
+    while (strIdx < n) {
+      char str = string.charAt(strIdx);
+      char sub = substr.charAt(subIdx);
+
+      if (str == sub) {
+        strIdx++;
+        subIdx++;
+
+        if (subIdx == m) {
+          return true;
+        }
+      }
+      else if (subIdx > 0) {
+        // Consider the following example
+        // String:  ABCABCABD
+        // Pattern: ABCABD
+        // When we find a mismatch at index 5, we can avoid doing 
+        // repeated work by realizing that in the substring 'ABCAB'
+        // 'AB' is a prefix of our pattern 'ABCABD'. So, rather than discarding
+        // all the hardwork we've done, we can simply pick up our matching
+        // work right after the prefix 'AB' and check if 'AB****'
+        // matches our pattern 'ABCABD'. 
+
+        // This underlying mechanism gives us the confidence that,
+        // whenever we find a mismatch, we'll never need to look back
+        // and consider other potential substrings. Consider the following
+        // example
+        // String:  ABCABAABD
+        // Pattern: ABCABD
+
+        // Again, at index 5, the algorithm would first bring us back
+        // to prefix 'AB'. This is the algorithm's way of telling us 
+        // "this substring cannot be a match cuz it starts with 'ABCABA',
+        // whereas the pattern starts with 'ABCABD'
+
+        // Moving on with prefix 'AB', in the next comparison the algorithm
+        // would notice that the next character 'A' in string does not match 
+        // the next character 'C' in pattern. The algorithm would reach
+        // the following conclusion 
+        // "this substring cannot be a match cuz it starts with 'ABA'"
+        // whereas the pattern starts with 'ABC'"
+
+        // Finally, seeing that 'A' is a prefix in pattern, the algorithm
+        // would include it as part of our current substring and go
+        // "this is a valid substring since it starts with 'A' and the
+        // pattern also starts with 'A'"
+      
+        
+        subIdx = lps[subIdx - 1];
+      }
+      else {
+        strIdx++;
+      }
+    }
+    return false;
+  }
+}
