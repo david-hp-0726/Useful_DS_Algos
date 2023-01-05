@@ -1,0 +1,56 @@
+import java.util.*;
+
+class Program {
+
+  public ArrayList<Integer> radixSort(ArrayList<Integer> array) {
+    if (array.isEmpty()) {
+      return new ArrayList<>();
+    }
+    
+    int max = Collections.max(array);
+    int numDigit = 0;
+    while ((max / Math.pow(10, numDigit)) > 0) {
+      countSort(array, numDigit);
+      numDigit++;
+    }
+    
+    return array;
+  }
+
+  private void countSort(ArrayList<Integer> array, int numDigit) {
+    int n = array.size();
+    int[] count = new int[10];
+    int[] newArr = new int[n];
+
+    // count the number of elements with each digit at the corresponding
+    // digit column
+    int digitColumn = (int) Math.pow(10, numDigit);
+    for (int num : array) {
+      int remainder = (num / digitColumn) % 10;
+      count[remainder]++;
+    }
+
+    // compute the index of each value based on the count of each
+    // basket
+    for (int i = 1; i < 10; i++) {
+      count[i] += count[i - 1];
+    }
+
+    // sort each number based on count array
+    // note it's important to start from the last element and work backward
+    // so that, let's say our array is [72, 65, 67] after the first iteration
+    // we can maintain the relative order of 65 and 67 by always prioritizing
+    // the value with a greater digit value in the previous iteration
+    for (int i = n - 1; i >= 0; i--) {
+      int num = array.get(i);
+      int remainder = (num / digitColumn) % 10;
+      int idx = --count[remainder];
+      newArr[idx] = num;
+    }
+
+    // move the values in newArr back to array
+    for (int i = 0; i < n; i++) {
+      array.set(i, newArr[i]);
+    }
+  }
+}
