@@ -1,0 +1,140 @@
+class Solution {
+    /*
+        Dp (n)
+    */
+    public int longestValidParentheses0(String s) {
+        // There are 3 forms of valid parentheses:
+        // 1. ()
+        // 2. ()()
+        // 3. ((()))
+
+        // To address case 1, we check if char i is ')', then char i - 1 is '('
+        // To address case 2, we add the value of dp[i - 2] to dp[i]
+        // To address case 3, we check if char i is ')', then if dp[i - 1] is
+        //      a valid substring, then if char i - 1 - dp[i - 1] is a '('.
+        //      If this is the case, then we can add 2 + dp[i - 1] to dp[i] 
+        
+        // Note case 1 and 3 are mutually exclusive
+        // Note that case 2 can either happen after case 1 or case 3
+        int[] dp = new int[s.length()];
+        int res = 0;
+
+        for (int i = 1; i < s.length(); i++) {
+            char curr = s.charAt(i);
+            char prev = s.charAt(i - 1);
+            if (curr == ')') {
+                // case 1
+                if (prev == '(') {
+                    dp[i] += 2;
+
+                    // case 2
+                    if (i - 2 > 0) {
+                        dp[i] += dp[i - 2];
+                    }
+                }
+
+                // case 3
+                else if (prev == ')') {
+                    int idx = i - 1 - dp[i - 1];
+                    if (idx >= 0 && s.charAt(idx) == '(') {
+                        dp[i] += 2 + dp[i - 1];
+
+                        // case 2 
+                        if (idx >= 2) {
+                            dp[i] += dp[idx - 1];
+                        }
+                    }
+                } 
+            }
+
+            res = Math.max(dp[i], res);
+        }
+
+        return res;
+    }
+
+    /*
+        Stack (n)
+    */
+    public int longestValidParentheses1(String s) {
+        // Use stack to keep track of the start of each potential
+        // valid substring
+        Stack<Integer> substrStart = new Stack<>();
+        substrStart.push(-1);
+
+        int res = 0;
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+
+            if (c == '(') {
+                // push the index onto the stack since this could be the
+                // start of a valid substring
+                substrStart.push(i);
+            }
+            else {
+                substrStart.pop();
+                
+                // if there is no corresponding '(' on the stack
+                // this could not be a valid substring, so we push
+                // the current index onto the stack signifying that
+                // any valid substring must start after this index
+                if (substrStart.empty()) {
+                    substrStart.push(i);
+                }
+                else {
+                    res = Math.max(res, i - substrStart.peek());
+                }
+            }
+        }
+        return res;
+    }
+
+    /* 
+        Linear Scan (n)
+    */
+    public int longestValidParentheses(String s) {
+        // Count the number of opening parenthesis and tally the result 
+        // whenever numOpen == numClose. Reset the substring whenever
+        // numOpen < numClose. To deal with corner cases like (()
+        // we need to traverse the string in both directions
+        int numOpen = 0, numClose = 0, res = 0;
+
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c == '(') {
+                numOpen++;
+            }
+            else {
+                numClose++;
+            }
+
+            if (numOpen == numClose) {
+                res = Math.max(res, numOpen * 2);
+            }
+            else if (numClose > numOpen) {
+                numOpen = numClose = 0;
+            }
+        }
+
+        numOpen = numClose = 0;
+        for (int i = s.length() - 1; i >= 0; i--) {
+            char c = s.charAt(i);
+
+            if (c == '(') {
+                numOpen++;
+            }
+            else {
+                numClose++;
+            }
+
+            if (numOpen == numClose) {
+                res = Math.max(res, numOpen * 2);
+            }
+            else if (numOpen > numClose) {
+                numOpen = numClose = 0;
+            }
+        }
+
+        return res;
+    }
+}
