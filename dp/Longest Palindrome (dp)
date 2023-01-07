@@ -1,0 +1,75 @@
+class Solution {
+    /*
+        dp
+    */
+    public String longestPalindrome1(String s) {
+        // s.substring(i, j) is a palindrome if 
+        //      1. s[i] == s[j] 
+        //      2. s.substring(i + 1, j - 1) is a palindrome
+
+        int n = s.length();
+        int resStart = 0, resEnd = 0;
+        int[][] memo = new int[n][n];
+        for (int substrSize = 1; substrSize <= n; substrSize++) {
+            int left = 0, right = left + substrSize - 1;
+
+            while (right < n) {
+                if (s.charAt(left) == s.charAt(right)) {
+                    // either the substr is small, or the inner substr must 
+                    // also be a palindrome itself
+                    if (substrSize <= 3 || memo[left + 1][right - 1] != 0){
+                        memo[left][right] = substrSize;
+                    }
+
+                    if (memo[left][right] > resEnd - resStart + 1) {
+                        resEnd = right;
+                        resStart = left;
+                    }
+                }
+                left++;
+                right++;
+            }
+        }
+
+        return s.substring(resStart, resEnd + 1);
+    }
+
+
+    /*
+        expand from center
+    */
+    int resStart;
+    int resEnd;
+    public String longestPalindrome(String s) {
+        for (int center = 0; center < s.length(); center++) {
+            findPalindrome(s, center);
+        }
+        return s.substring(resStart, resEnd + 1);
+    }
+
+    private void findPalindrome(String s, int center) {
+        int left = center - 1;
+        int right = center + 1;
+
+        while (right < s.length() && s.charAt(center) == s.charAt(right)) {
+            right++;
+        }
+
+        while (left >= 0 && right < s.length()) {
+            if (s.charAt(left) == s.charAt(right)) {
+                left--;
+                right++;
+            }
+            else {
+                break;
+            }
+        }
+
+        int prevLeft = left + 1;
+        int prevRight = right - 1;
+        if (prevRight - prevLeft > resEnd - resStart) {
+            resEnd = prevRight;
+            resStart = prevLeft;
+        }
+    }
+}
