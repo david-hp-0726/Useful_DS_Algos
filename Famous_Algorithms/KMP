@@ -45,12 +45,11 @@ class Program {
         // Consider the following example
         // String:  ABCABCABD
         // Pattern: ABCABD
-        // When we find a mismatch at index 5, we can avoid doing 
-        // repeated work by realizing that in the substring 'ABCAB'
-        // 'AB' is a prefix of our pattern 'ABCABD'. So, rather than discarding
-        // all the hardwork we've done, we can simply pick up our matching
-        // work right after the prefix 'AB' and check if 'AB****'
-        // matches our pattern 'ABCABD'. 
+        // When we find a mismatch at index 5 between 'C' and 'D', we can avoid doing 
+        // repeated work by realizing that in the substring we've matched 'ABCAB',
+        // 'AB' is a prefix of the pattern 'ABCABD'. So, rather than discarding
+        // all the work we've done, we can simply pick up our matching work
+        // right after the prefix 'AB' and check if 'AB****' matches our pattern 'ABCABD'. 
 
         // This underlying mechanism gives us the confidence that,
         // whenever we find a mismatch, we'll never need to look back
@@ -59,10 +58,11 @@ class Program {
         // String:  ABCABAABD
         // Pattern: ABCABD
 
-        // Again, at index 5, the algorithm would first bring us back
-        // to prefix 'AB'. This is the algorithm's way of telling us 
+        // Again, at index 5, the algorithm would first jump directly to the
+        // longest matching prefix 'AB' and continue from there.
+        // This is the algorithm's way of telling us 
         // "this substring cannot be a match cuz it starts with 'ABCABA',
-        // whereas the pattern starts with 'ABCABD'
+        // whereas the pattern starts with 'ABCABD'"
 
         // Moving on with prefix 'AB', in the next comparison the algorithm
         // would notice that the next character 'A' in string does not match 
