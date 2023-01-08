@@ -1,0 +1,104 @@
+class Solution {
+    /*
+        Bit Operation 
+        time (n * 2^n) 
+            n = converting from StringBuilder to String + inner for loop
+        space (n * 2^n)
+            n = number of elements
+            2^n = number of hashcodes
+    */
+    public List<List<Integer>> subsetsWithDup(int[] nums) {
+        // To detect duplicates we sort the arr first
+        Arrays.sort(nums);
+        List<List<Integer>> res = new ArrayList<>();
+        Set<String> seen = new HashSet<>();
+        int totalNumSubsets = (int) Math.pow(2, nums.length);
+
+        for (int subsetNum = 0; subsetNum < totalNumSubsets; subsetNum++) {
+            List<Integer> subset = new ArrayList<>();
+            StringBuilder hashcode = new StringBuilder();
+            int bitMask = 1;
+
+            for (int i = 0; i < nums.length; i++) {
+                // if the subsetNum indicates that the current position should
+                // be added
+                if ((bitMask & subsetNum) != 0) {
+                    subset.add(nums[i]);
+                    hashcode.append(nums[i] + ',');
+                }
+                bitMask <<= 1;
+            }
+            
+            if (!seen.contains(hashcode.toString())) {
+                res.add(subset);
+                seen.add(hashcode.toString());
+            }
+        }
+        
+        return res;
+    }
+
+    /*
+        Dp
+        time (n * 2^n) 
+            n = copy previously generated set 
+            2^n = number of possible sets
+        space (log(n))
+    */
+    public List<List<Integer>> subsetsWithDup1(int[] nums) {
+        List<List<Integer>> res = new ArrayList<>();
+        int n = nums.length;
+        int prevSubsetSize = 0;
+        Arrays.sort(nums);
+        res.add(new ArrayList<>());
+
+        for (int i = 0; i < n; i++) {
+            // if the value is a duplicate, then we only use it on subsets we
+            // created in our previous step; otherwise we use it on all subsets
+            // we have
+            int startIdx = (i > 0 && nums[i] == nums[i - 1]) ? prevSubsetSize : 0; 
+            int endIdx = res.size() - 1;
+            
+            // update the starting index of all the newly added idx
+            // which is equal to the current size of our solution set
+            prevSubsetSize = res.size();
+
+            for (int j = startIdx; j <= endIdx; j++) {
+                List<Integer> subset = new ArrayList<>(res.get(j));
+                subset.add(nums[i]);
+                res.add(subset);
+            }
+        }
+        return res;    
+    }
+
+
+    /*
+        Backtracking
+        time (n * 2^n)
+        space (n)
+            n = number of recursive calls
+    */
+    List<List<Integer>> res = new ArrayList<>();
+    public List<List<Integer>> subsetsWithDup2(int[] nums) {
+        Arrays.sort(nums);
+        backtrack(nums, 0, new ArrayList<>());
+        return res;
+    }
+    
+    private void backtrack(int[] nums, int index, List<Integer> subset) {
+        res.add(new ArrayList<>(subset));
+
+        for (int i = index; i < nums.length; i++) {
+            if (i != index && nums[i] == nums[i - 1]) {
+                continue;
+            }
+            // try adding the element
+            subset.add(nums[i]);
+            backtrack(nums, i + 1, subset);
+
+            // try without the element
+            subset.remove(subset.size() - 1);
+        }
+    }
+}
