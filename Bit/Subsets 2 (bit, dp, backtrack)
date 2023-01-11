@@ -93,6 +93,7 @@ class Solution {
             if (i != index && nums[i] == nums[i - 1]) {
                 continue;
             }
+            
             // try adding the element
             subset.add(nums[i]);
             backtrack(nums, i + 1, subset);
@@ -101,4 +102,38 @@ class Solution {
             subset.remove(subset.size() - 1);
         }
     }
-}
+    
+    
+    /*
+        Backtracking 2nd Version
+        time (n * 2^n)
+        space (n)
+    */ 
+    List<List<Integer>> res = new ArrayList<>();
+    public List<List<Integer>> subsetsWithDup3(int[] nums) {
+        Arrays.sort(nums);
+        backtrack(nums, 0, new ArrayList<>());
+        return res;
+    }
+    
+    private void backtrack(int[] nums, int index, List<Integer> subset) {
+        if (index == nums.length) {
+            res.add(new ArrayList<>(subset));
+            return;
+        }
+           
+        // try including the current element
+        subset.add(nums[index]);
+        backtrack(nums, index + 1, subset);
+           
+        // skip duplicate elements
+        int nextIdx = index + 1;
+        while (nextIdx < nums.length && nums[nextIdx] == nums[nextIdx - 1]) {
+            nextIdx++;
+        }
+        
+        // try excluding the current element in future search
+        subset.remove(subset.size() - 1);
+        backtrack(nums, nextIdx, subset);
+    }
+ }
