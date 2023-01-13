@@ -1,0 +1,101 @@
+
+// Boyer-Moore-Horspool’s algorithm capitalizes on comparison work we’ve already done to skip alignments 
+// that provably won’t result in any match. It makes use of a bad match table, which stores the last occurrence of 
+// each character. The table allows us to know how far to jump ahead whenever a mismatch is found.
+
+// Consider the following example
+// S: ABBABCABC
+// P: ABCABC
+// Bad Match Table (C is 3 instead of -1 because we don’t take the last character into account when building BMT):
+// A  B  C 
+// 2  1  3
+
+// Comparison Starts:
+	      v
+// ABBABCABC
+	      v
+// ABCABC
+
+// The algorithm would start the comparison at index 5 working backward. Upon finding a mismatch between ‘B’ and ‘C’, 
+// it would reach the following conclusion: 
+
+// “Clearly, the substring “ABBABC” cannot be a match. However, I do know the matching portion of this substring “ABBABC” ends 
+// with ‘C’, and ‘C’ also occurs somewhere else in the pattern. Therefore, if I shift the pattern to the right by 3 and compare 
+// again, I would get a substring like this “**C***”. Since I cannot not rule out the possibility that this substring is a valid match, 
+// I must start my next comparison with this substring.”
+
+// In this case, the algorithm would skip ahead 3 index and “**C***” turns out to be a match.
+
+
+// The next example would clarify why we won’t consider the last character when building the BMT:
+// S: ABBABDABCABD
+// P: ABCABD
+// Bad Match Table:
+// A  B  C   D
+// 2  1  3  -1
+
+// Comparison Starts:
+	      v
+// ABBABDABCABD
+	      v
+// ABCABD
+
+
+// The algorithm would start the comparison at index 5 working backward. Upon finding a mismatch 
+// between ‘B’ and ‘C’, it would reach the following conclusion: 
+// “Clearly, the substring “ABBABD” cannot be a match. However, with the knowledge that the matching 
+// portion starts with ‘D’, and’ that D’ does not appear anywhere else in this substring, therefore we 
+// can rule out all of the following substrings as possible matches since ‘D’ can only take place at index 5.”
+“BBABD*” 
+“BABD**”
+“ABD***”
+“BD****”
+“D*****”
+
+// Notice here, without actually examining the 5 substrings we are able to rule them out with the knowledge 
+// that ‘D’ does not appear anywhere else in the substring. The same logic would still apply even if we change ‘D’ 
+// to other characters absent in the pattern.
+
+// In conclusion, Boyer-Moore enables us to take advantage of mismatches to dispense with useless comparisons. 
+// In the ideal scenario where there are no repeating characters in our pattern, Boyer-Moore algorithm can be run in 
+// linear time. That said, there is a significant drawback to the algorithm, which is when the pattern involves a lot of 
+// repeating characters and the algorithm would not be able to skip redundant comparisons. For instance, the following 
+// example would result in the algorithm exhausting every single substring, giving a worst-case time complexity of O(n * m):
+String:   AAAAAAB
+Pattern: AAAB
+
+class Program {
+  public static boolean knuthMorrisPrattAlgorithm(String string, String pattern) {
+    int[] bmt = new int[128];
+    int n = string.length(), m = pattern.length();
+    Arrays.fill(bmt, m); // if we run into any bad characters we skip by m
+
+    // build bad match table by storing the last occurrence of each
+    // character (except for the last charcter)
+    for (int i = 0; i < m - 1; i++) {
+      char c = pattern.charAt(i);
+      bmt[c] = m - i - 1;
+    }
+
+    int index = m - 1;
+    while (index < n) {
+      int str_idx = index;
+      int pat_idx = m - 1;
+      while (pat_idx >= 0 && string.charAt(str_idx) == pattern.charAt(pat_idx)) {
+        str_idx--;
+        pat_idx--;
+      }
+
+      // if we are able to match every single character in pattern
+      if (pat_idx == -1) {
+        return true;
+      }
+
+      // otherwise shift our pattern ahead according to the bmt
+      char badChar = string.charAt(index);
+      index += bmt[badChar];
+    }
+    
+    return false;
+  }
+}
