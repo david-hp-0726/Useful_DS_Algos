@@ -1,0 +1,78 @@
+import java.util.*;
+
+class Program {
+
+  public int[][][] kruskalsAlgorithm(int[][][] edges) {
+    // Store all edges in a priority queue
+    Queue<int[]> pq = new PriorityQueue<>((a, b) -> a[2] - b[2]);
+    int n = edges.length;
+    UF uf = new UF(n);
+    
+    for (int i = 0; i < n; i++) {
+      int[][] node = edges[i];
+      for (int[] edge : node) {
+        pq.add(new int[] {i, edge[0], edge[1]});
+      }
+    }
+
+    // construct the minimum spanning tree
+    List<List<int[]>> res = new ArrayList<>();
+    for (int i = 0; i < n; i++) {
+      res.add(new ArrayList<>());
+    }
+    int numComponents = n;
+
+    while (numComponents > 1 && !pq.isEmpty()) {
+      int[] edge = pq.remove();
+      if (!uf.isConnected(edge[0], edge[1])) {
+        uf.union(edge[0], edge[1]);
+        int[] arr1 = new int[] {edge[1], edge[2]};
+        int[] arr2 = new int[] {edge[0], edge[2]};
+        res.get(edge[0]).add(arr1);
+        res.get(edge[1]).add(arr2);
+      }
+    }
+
+    // build the graph for the minimal spanning tree
+    int[][][] graph = new int[n][][];
+    for (int node = 0; node < n; node++) {
+      List<int[]> connections = res.get(node);
+      int size = connections.size();
+      graph[node] = new int[size][2];
+      
+      for (int i = 0; i < size; i++) {
+        graph[node][i] = connections.get(i);
+      }
+    }
+    
+    return graph;
+  }
+
+  private class UF {
+    int[] roots;
+    
+    public UF (int size) {
+      roots = new int[size];
+      for (int i = 0; i < size; i++) {
+        roots[i] = i;
+      }
+    }
+
+    public int root(int index) {
+      while (index != roots[index]) {
+        roots[index] = roots[roots[index]];
+        index = roots[index];
+      }
+      return index;
+    }
+
+    public boolean isConnected(int index1, int index2) {
+      return root(index1) == root(index2);
+    }
+
+    public void union(int index1, int index2) {
+      int root1 = root(index1), root2 = root(index2);
+      roots[root2] = root1;
+    }
+  }
+}
