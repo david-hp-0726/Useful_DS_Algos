@@ -1,0 +1,78 @@
+class Solution {
+    Integer[] tasks;
+    Integer[] workers;
+
+    public int maxTaskAssign(int[] t, int[] w, int pills, int strength) {
+        tasks = new Integer[t.length];
+        workers = new Integer[w.length];
+        for (int i = 0; i < t.length; i++) {
+            tasks[i] = t[i];
+        }
+        for (int i = 0; i < w.length; i++) {
+            workers[i] = w[i];
+        }
+        Arrays.sort(tasks);
+        Arrays.sort(workers, Collections.reverseOrder());
+
+        int low = 0, high = Math.min(tasks.length, workers.length), res = 0;
+        while (low <= high) {
+            int mid = low + (high - low) / 2;
+
+            if (canAssign(pills, strength, mid)) {
+                res = mid;
+                low = mid + 1;
+            }
+            else {
+                high = mid - 1;
+            }
+        }
+
+        return res;
+    }
+
+    private boolean canAssign(int pills, int strength, int numTasks) {
+        Deque<Integer> candidates = new ArrayDeque<>();
+
+        // Among all the tasks we pick the easiest set of them
+        // But when assigning tasks, we want to start by assigning
+        // the hardest tasks to the most capable workers
+        int workerIdx = 0;
+        for (int taskIdx = numTasks - 1; taskIdx >= 0; taskIdx--) {
+            // for the current task, find a list of candidates who
+            // can solve the task with or without the help of the
+            // pill
+            while (workerIdx < numTasks && tasks[taskIdx] <= workers[workerIdx] + strength) {
+                candidates.offerLast(workers[workerIdx]);
+                workerIdx++;
+            }
+
+            // if even the strongest worker with pill cannot do the task
+            if (candidates.isEmpty()) {
+                return false;
+            }
+
+            // if the task is accomplishable, we want to first try
+            // doing it without pill with out strongest worker;
+            // since the current task is the hardest among all
+            // the remaining tasks, we can feel assured that we
+            // are not wasting any talent
+            if (candidates.peekFirst() >= tasks[taskIdx]) {
+                candidates.pollFirst();
+            }
+            // if even our strongest worker cannot solve the task
+            // that means a pill has to be used; since all candidates
+            // we've selected are capable of solving the task with a
+            // pill, we want to maximize the benefit of the pill by
+            // using it on the weakest candidate
+            else if (pills == 0) {
+                return false;
+            }
+            else {
+                pills--;
+                candidates.pollLast();
+            }
+        }
+
+        return true;
+    }
+}
