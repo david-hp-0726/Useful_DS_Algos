@@ -1,0 +1,33 @@
+class Solution {
+    public int maxProfit(int k, int[] prices) {
+        // memo[i][j] = maximum profit using i transactions at the jth day 
+        int[][] memo = new int[k + 1][prices.length];
+        
+        // The maximum profit we can make at any day with k transactions
+        // is from one of the following two actions
+        // 1. We do nothing and stay content with our result so far
+        //      memo[k][day - 1];
+        // 2. We change our mind and decide to discard the kth transaction
+        //      we've just made, and so our new profit is going to be
+        //      today's stock price - cheapest stock price on a previous day + 
+        //      maximum profit we obtained up to that previous day
+        int numDays = prices.length;
+        for (int numTrans = 1; numTrans <= k; numTrans++) {
+            // keeps track of the "-cheapest stock price on a previous day + 
+            // maximum profit obtained up to that previous day" portion 
+            // of our formula
+            int maxThusFar = -1 * prices[0];
+
+            for (int day = 1; day < numDays; day++) {
+                maxThusFar = Math.max(memo[numTrans - 1][day] - prices[day], maxThusFar);
+
+                int doNothing = memo[numTrans][day - 1];
+                int changeOurMind = prices[day] + maxThusFar;
+
+                memo[numTrans][day] = Math.max(doNothing, changeOurMind);
+            }
+        }
+
+        return memo[k][numDays - 1];
+    }
+}
