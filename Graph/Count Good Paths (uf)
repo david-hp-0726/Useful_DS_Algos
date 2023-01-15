@@ -1,0 +1,102 @@
+class Solution {
+    public int numberOfGoodPaths(int[] vals, int[][] edges) {
+        // Two nodes are connected if they are connected both physically
+        // and in terms of value. We are interested in counting the number of
+        // ways to get from each node to another node with the same value.
+
+        // 1. adj list, which tells us which nodes are connected on the graph
+        // 2. hashmap, which maps values to nodes with that value and tells us
+        //          which nodes are connected in terms of value
+        // 3. union find, which allows us to group physically connected nodes and 
+        //          compute the sizes of those groups
+
+        // There is a catch, however, which is that two nodes connected by 
+        // the graph and by their value might be disconnected by a node
+        // in between them with a larger value. So when building our union
+        // find data structure it's important to start with smaller nodes
+        // so that we can make sure, when two nodes are physically connected
+        // they don't have a larger node separating them along the path
+
+
+        // adj list & value map
+        int n = vals.length;
+
+        // treemap stores keys in sorted order
+        TreeMap<Integer, List<Integer>> valMap = new TreeMap<>(); 
+        List<Integer>[] adj = new ArrayList[n];
+
+        for (int i = 0; i < n; i++) {
+            adj[i] = new ArrayList<>();
+            valMap.computeIfAbsent(vals[i], v -> new ArrayList<>()).add(i);
+        }
+
+        for (int[] edge : edges) {
+            adj[edge[0]].add(edge[1]);
+            adj[edge[1]].add(edge[0]);
+        }
+
+        // constructing union find
+        UF uf = new UF(n);
+        int numPaths = 0;
+        for (int val : valMap.keySet()) {
+            for (int node : valMap.get(val)) {
+                for (int neighbor : adj[node]) {
+                    // filter out irrelevant nodes
+                    if (vals[neighbor] <= vals[node]) {
+                        uf.union(node, neighbor);
+                    }
+                }
+            }
+
+            // when computing group sizes, we only need to consider nodes
+            // whose values is equal to the current value
+            Map<Integer, Integer> groupSizes = new HashMap<>();;
+            for (int node : valMap.get(val)) {
+                int root = uf.root(node);
+                groupSizes.put(root, groupSizes.getOrDefault(root, 0) + 1);
+            }
+
+            for (int size : groupSizes.values()) {
+                numPaths += (size * (size + 1)) / 2;
+            }
+        }
+
+        return numPaths;
+    }
+
+    // union find
+    private class UF {
+        int[] roots;
+        int[] sizes;
+
+        public UF(int n) {
+            roots = new int[n];
+            sizes = new int[n];
+            for (int i = 0; i < n; i++) {
+                roots[i] = i;
+            }
+            Arrays.fill(sizes, 1);
+        }
+
+        public int root(int index) {
+            while (roots[index] != index) {
+                roots[index] = roots[roots[index]];
+                index = roots[index];
+            }
+            return index;
+        }
+
+        public void union(int index1, int index2) {
+            int root1 = root(index1);
+            int root2 = root(index2);
+
+            if (root1 == root2) {
+                return;
+            }
+            else {
+                roots[root2] = root1;
+                sizes[root1] += sizes[root2];
+            }
+        }
+    }
+}
