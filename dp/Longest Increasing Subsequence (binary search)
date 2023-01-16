@@ -1,0 +1,127 @@
+class Solution {
+    /*
+        Solution 1: dp
+        time: n^2
+        space: n
+    */
+    public int lengthOfLIS1(int[] nums) {
+        int n = nums.length;
+        int[] prevIdx = new int[n]; // previous element in the sequence
+        int[] longestSeq = new int[n]; // length of the longest sequence up to this element
+        Arrays.fill(prevIdx, -1);
+        longestSeq[0] = 1;
+
+        int longestOfAll = 1;
+        for (int i = 1; i < n; i++) {
+            int longestPrevIdx = -1;
+            int longestPrev = 0;
+
+            for (int j = 0; j < i; j++) {
+                if (nums[i] > nums[j] && longestSeq[j] > longestPrev) {
+                    longestPrev = longestSeq[j];
+                    longestPrevIdx = j;
+                }
+            }
+
+            longestSeq[i] = longestPrev + 1;
+            prevIdx[i] = longestPrevIdx;
+            longestOfAll = Math.max(longestOfAll, longestSeq[i]);
+        }
+
+        return longestOfAll;
+    }
+
+    /*
+        Solution 2: dp optimized
+        time: n * log(n)
+        space: n
+    */
+    public int lengthOfLIS2(int[] nums) {
+        int n = nums.length;   
+        // stores the index of the last element of a sequence of length i;
+        // to maximize the chances of a sequence being extended we want that
+        // last element to be as small as possible
+        int[] seqEnds = new int[n + 1]; 
+        Arrays.fill(seqEnds, -1);
+        seqEnds[1] = 0; // we know the first element itself is a subsequence of length 1
+
+        int longestThusFar = 1;
+        for (int i = 1; i < n; i++) {
+            int longestPrev = 0;
+
+            int low = 1, high = longestThusFar;
+            while (low <= high) {
+                int mid = (high + low) / 2;
+                int endIdx = seqEnds[mid];
+                
+                if (nums[endIdx] < nums[i]) {
+                    longestPrev = mid;
+                    low = mid + 1;
+                }
+                else {
+                    high = mid - 1;
+                }
+            }
+
+            int currLen = 1 + longestPrev;
+            if (seqEnds[currLen] == -1 || nums[seqEnds[currLen]] > nums[i]) {
+                seqEnds[currLen] = i;
+            }
+            longestThusFar = Math.max(longestThusFar, currLen);
+        }
+
+        return longestThusFar;
+    }
+    
+    /*
+        Solution 3: build a sequence
+        time: n * log(n);
+        space: n
+    */
+    public int lengthOfLIS(int[] nums) {
+        // Imagine the following array [2, 6, 9, 4, 5, 6, 10,...]
+        // We start by adding the first 3 elements into our subsequence [2, 6, 9]
+        // Then we have a decision to make:
+        // 1. continue the subsequence with [6, 9]
+        // 2. replace [6, 9] with [4]
+
+        // Clearly to optimize our chances of extending the sequence, we should mark the length
+        // of our current array and proceed with the 4. It turns out we can simply replace the
+        // 6 with 4 and make our sequence [2, 4, 9], for the following reasons. Since this allows us
+        // to preserve the maximum length we've gotton thus far and affords the possibility to
+        // replace the 9 with another smaller element.
+        int n = nums.length;
+        List<Integer> seq = new ArrayList<>();
+        seq.add(nums[0]);
+        
+        for (int i = 1; i < n; i++) {
+            if (nums[i] > seq.get(seq.size() - 1)) {
+                seq.add(nums[i]);
+            }
+            else {
+                // Look for the smallest element that's greater than the current element
+                // Notice it's guaranteed that we will always preserve the relative order of
+                // elements since the current element is to the right of every other element
+                // currently in the list
+                int low = 0, high = seq.size() - 1, replaceIdx = 0;
+                
+                while (low <= high) {
+                    int mid = (high + low) / 2;
+
+                    if (seq.get(mid) < nums[i]) {
+                        low = mid + 1;
+                    }
+                    else {
+                        replaceIdx = mid;
+                        high = mid - 1;
+                    }
+                }
+
+                seq.set(replaceIdx, nums[i]);
+            }
+        }
+        
+
+        return seq.size();
+    }
+}
