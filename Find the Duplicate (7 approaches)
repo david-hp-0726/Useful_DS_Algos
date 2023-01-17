@@ -1,0 +1,188 @@
+class Solution {
+    /*
+        Sort
+    */
+    public int findDuplicate0(int[] nums) {
+        Arrays.sort(nums);
+        int prev = -1;
+        for (int num : nums) {
+            if (num == prev) {
+                return num;
+            }
+            prev = num;
+        }
+        return -1;
+    }
+
+    /*
+        Set
+    */
+    public int findDuplicate1(int[] nums) {
+        Set<Integer> seenNums = new HashSet<>();
+        for (int num : nums) {
+            if (seenNums.contains(num)) {
+                return num;
+            }
+            seenNums.add(num);
+        }
+        return -1;
+    }
+
+    /*
+        Negative Marking
+    */
+    public int findDuplicate2(int[] nums) {
+        for (int i = 0; i < nums.length; i++) {
+            int idx = Math.abs(nums[i]);
+            if (nums[idx] < 0) {
+                return idx;
+            }
+            nums[idx] *= -1;
+        }
+        return -1;
+    }
+
+    /*
+        Using Array as HashMap (recursive)
+    */
+    public int findDuplicate3(int[] nums) {
+        // We will use the value of each number as its idx in the map.
+        // Since n >= 1, we can use idx 0 as the starting point. If the array is 
+        // sorted, and each value is placed right at the idx equal to its value, then
+        // we are guaranteed that the value placed at idx 0 is the duplicate
+        return map(nums, 0);
+    }
+
+    private int map(int[] nums, int idx) {
+        if (nums[idx] == idx) {
+            return idx;
+        }
+        int newIdx = nums[idx];
+        nums[idx] = idx;
+        return map(nums, newIdx);
+    }
+
+    /*
+        Using Array as HashMap (iterative)
+    */
+    public int findDuplicate4(int[] nums) {
+        int idx = 0;
+        while (nums[idx] != idx) {
+            int newIdx = nums[idx];
+            nums[idx] = idx;
+            idx = newIdx;
+        }
+        return idx;
+    }
+
+    /*
+        Binary Search
+    */
+    public int findDuplicate5(int[] nums) {
+        // Every number n will have exactly n numbers in the array that are less than
+        // or equal to it. The smallest number that doesn't satisfy this property will
+        // be the duplicate number.
+        int high = nums.length - 1;
+        int low = 0;
+        int duplicate = -1;
+
+        while (low <= high) {
+            int mid = low + (high - low) / 2;
+            int count = 0;
+
+            for (int num : nums) {
+                if (num <= mid) {
+                    count++;
+                }
+            }
+
+            // note all numbers above the duplicate will also not satisfy the 
+            // property
+            if (count > mid) {
+                duplicate = mid;
+                high = mid - 1;
+            }
+            else {
+                low = mid + 1;
+            }
+        }
+        return duplicate;
+    }
+
+    /*
+        Count Bits
+        time: n * log(n)
+        log(n) = number of bits 
+        space: 1
+    */
+    public int findDuplicate6(int[] nums) {
+        // [1,2,3] -> 01 + 10 + 11 = 22
+        // [1,2,2,3] -> 01 + 10 + 10 + 11 = 32
+        // 32 - 22 = 10 -> [2]
+        //           ^
+        //        this bit is set to 1 for too many times
+
+        // [1,2] -> 01 + 10 = 11
+        // [1,2,2,2] -> 01 + 10 + 10 + 10 = 31
+        // 31 - 11 = 20 -> [2]
+        //           ^
+        //        this bit is set to 1 for too many times
+
+        // Notice, whenever there is a number that appears more than once, the corresponding
+        // bit is set to 1 for more times than it should be
+        int max_num = 0;
+        for (int num : nums) {
+            max_num = Math.max(num, max_num);
+        }
+
+        int max_bit = 0;
+        while (max_num > 0) {
+            max_bit++;
+            max_num /= 2;
+        }
+
+        // whenever we see a bit that is set to 1 for too many times,
+        // we set set that bit in duplicate
+        int duplicate = 0; 
+
+        for (int i = 0; i < max_bit; i++) {
+            int bit = 1 << i;
+            int base_count = 0; // count the number of times bit is set to 1 in base
+            int nums_count = 0; // count the number of times bit is set to 1 in nums array
+
+            for (int j = 0; j < nums.length; j++) {
+                if ((j & bit) > 0) {
+                    base_count++;
+                }
+
+                if ((nums[j] & bit) > 0) {
+                    nums_count++;
+                }
+            }
+
+            if (base_count < nums_count) {
+                duplicate |= bit;
+            }
+        }
+        return duplicate;
+    }
+
+    /*
+        Floyd's Cycle Detection Algorithm
+    */
+    public int findDuplicate(int[] nums) {
+        int hare = nums[0];
+        int tortoise = nums[0];
+        do {
+            hare = nums[nums[hare]];
+            tortoise = nums[tortoise];
+        } while (hare != tortoise);
+
+        tortoise = nums[0];
+        while (hare != tortoise) {
+            hare = nums[hare];
+            tortoise = nums[tortoise];
+        }
+        return tortoise;
+    }
+}
