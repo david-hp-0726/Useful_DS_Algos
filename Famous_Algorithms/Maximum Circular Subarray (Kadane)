@@ -1,0 +1,56 @@
+class Solution {
+    /*
+        Prefix & Suffix Sum
+    */
+    public int maxSubarraySumCircular1(int[] nums) {
+        int n = nums.length;
+        int[] maxSuffixSums = new int[n];
+        maxSuffixSums[n - 1] = nums[n - 1];
+        
+        int suffixSum = nums[n - 1];
+        for (int i = n - 2; i >= 0; i--) {
+            suffixSum += nums[i];
+            maxSuffixSums[i] = Math.max(suffixSum, maxSuffixSums[i + 1]);
+        }
+
+        // initialized to nums[0] in case the smallest value is smaller than 0
+        int kadaneSum = nums[0]; 
+        int circularSum = nums[0];
+        int runningKadaneSum = 0;
+        int prefixSum = 0;
+        for (int i = 0; i < n; i++) {
+            prefixSum += nums[i];
+
+            runningKadaneSum = Math.max(runningKadaneSum, 0) + nums[i];
+            kadaneSum = Math.max(kadaneSum, runningKadaneSum);
+
+            if (i < n - 1) {
+                circularSum = Math.max(prefixSum + maxSuffixSums[i + 1], circularSum);
+            }
+        }
+
+        return Math.max(kadaneSum, circularSum);
+    }
+
+    /*
+        Max Subarray & Min Subarray
+    */
+    public int maxSubarraySumCircular(int[] nums) {
+        int max = nums[0], min = nums[0], runningMax = 0, runningMin = 0, total = 0;
+
+        for (int num : nums) {
+            runningMax = Math.max(runningMax, 0) + num;
+            runningMin = Math.min(runningMin, 0) + num;
+            total += num;
+            max = Math.max(runningMax, max);
+            min = Math.min(runningMin, min);
+        }
+
+        // if the array contains only negative values
+        if (total == min) {
+            return max;
+        }
+
+        return Math.max(total - min, max);
+    }
+}
