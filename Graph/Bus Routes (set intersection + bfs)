@@ -1,0 +1,89 @@
+class Solution {
+    public int numBusesToDestination(int[][] routes, int source, int target) {
+        if (source == target) {
+            return 0;
+        }
+        
+        // Task 1: Sort all bus station in increasing order to facilitate task 2
+        int n = routes.length;
+        Map<Integer, List<Integer>> adj = new HashMap<>();
+        for (int i = 0; i < n; i++) {
+            Arrays.sort(routes[i]);
+            adj.put(i, new ArrayList<>());
+        }
+
+        // Task 2: Connect all bus routes that are connected 
+        for (int route1 = 0; route1 < n; route1++) {
+            for (int route2 = 0; route2 < n; route2++) {
+                if (route1 == route2) {
+                    continue;
+                }
+
+                if (intersects(routes[route1], routes[route2])) {
+                    adj.get(route1).add(route2);
+                    adj.get(route2).add(route1);
+                }
+            }
+        }
+
+        // Task 3: Start from the source node, perform a bfs. Terminate when 
+        //          there are no more routes to get to or when a station
+        //          that belong to the same route as target is reached
+        // First tally all bus stops that are connected to target
+        // Meanwhile, we also want to find out all bus routes that contain our source
+        Set<Integer> visited_routes = new HashSet<>();
+        Set<Integer> target_routes = new HashSet<>(); 
+        Queue<int[]> bfs = new ArrayDeque<>();
+
+        for (int route = 0; route < n; route++) {
+            if (Arrays.binarySearch(routes[route], target) >= 0) {
+                target_routes.add(route);
+            }
+
+            if (Arrays.binarySearch(routes[route], source) >= 0) {
+                bfs.add(new int[] {route, 1});
+                visited_routes.add(route);
+            }
+        }
+
+        while (!bfs.isEmpty()) {
+            int[] curr = bfs.remove();
+            int route = curr[0];
+            int level = curr[1];
+            
+            if (target_routes.contains(route)) {
+                return level;
+            }
+
+            for (int nextRoute : adj.get(route)) {
+                if (visited_routes.contains(nextRoute)) {
+                    continue;
+                }  
+
+                visited_routes.add(nextRoute);
+                bfs.add(new int[] {nextRoute, level + 1});
+            }
+        }
+
+        return -1;
+    }
+
+    private boolean intersects(int[] route1, int[] route2) {
+        int idx1 = 0;
+        int idx2 = 0;
+
+        while (idx1 < route1.length && idx2 < route2.length) {
+            if (route1[idx1] == route2[idx2]) {
+                return true;
+            }
+            else if (route1[idx1] < route2[idx2]) {
+                idx1++;
+            }
+            else {
+                idx2++;
+            }
+        }
+
+        return false;
+    }
+}
