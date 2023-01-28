@@ -1,0 +1,112 @@
+/*
+    Solution 1: TreeSet
+    time: addNum = O(log(n)) getIntervals = O(n)
+    space: O(n)
+*/  
+// class SummaryRanges {
+    // Set<Integer> vals;
+
+    // public SummaryRanges() {
+    //     vals = new TreeSet<>();
+    // }
+    
+    // public void addNum(int value) {
+    //     vals.add(value);
+    // }
+    
+    // public int[][] getIntervals() {
+    //     List<int[]> intervals = new ArrayList<>();
+    //     int left = -2, right = -2;
+
+    //     for (int val : vals) {
+    //         if (val > right + 1 && right != -2) {
+    //             intervals.add(new int[] {left, right});
+    //             left = -2;
+    //             right = -2;
+    //         }
+
+    //         if (left == -2) {
+    //             left = val;
+    //             right = val;
+    //         }
+    //         else {
+    //             right = val;
+    //         }
+    //     }
+
+    //     if (left != -2 && right != -2) {
+    //         intervals.add(new int[] {left, right});
+    //     }
+
+    //     int[][] res = new int[intervals.size()][2];
+    //     int idx = 0;
+    //     for (int[] interval : intervals) {
+    //         res[idx++] = interval;
+    //     }
+
+    //     return res;
+    // }
+// }
+
+/*
+    Solution 2: TreeMap where key = start and value = end
+    time: addNum = O(log(n)) getIntervals = O(n) but less on average
+    space: O(n) 
+*/
+class SummaryRanges {
+    TreeMap<Integer, Integer> intervals;
+
+    public SummaryRanges() {
+        intervals = new TreeMap<>();
+    }
+    
+    public void addNum(int value) {
+        int key = value;
+        int value_to_store = value;
+
+
+        Map.Entry<Integer, Integer> smallerEntry = intervals.floorEntry(value);
+        if (smallerEntry != null) {
+            // if the current value is already contained in that interval 
+            if (value <= smallerEntry.getValue()) {
+                return;
+            }
+
+            // else if value - 1 is the right bound of that interval, 
+            // use the left of that interval as key
+            if (value - 1 == smallerEntry.getValue()) {
+                key = smallerEntry.getKey();
+            }
+        }
+
+        // if value + 1 exists
+        Map.Entry<Integer, Integer> largerEntry = intervals.ceilingEntry(value);
+        if (largerEntry != null && largerEntry.getKey() == value + 1) {
+            value_to_store = largerEntry.getValue();
+
+            // merge intervals
+            intervals.remove(value + 1);
+        }
+
+        intervals.put(key, value_to_store);
+    }
+    
+    public int[][] getIntervals() {
+        int[][] res = new int[intervals.size()][2];
+        int idx = 0;
+
+        for (Map.Entry<Integer, Integer> interval : intervals.entrySet()) {
+            res[idx++] = new int[] {interval.getKey(), interval.getValue()};
+        }
+
+        return res;
+    }
+}
+
+
+/**
+ * Your SummaryRanges object will be instantiated and called as such:
+ * SummaryRanges obj = new SummaryRanges();
+ * obj.addNum(value);
+ * int[][] param_2 = obj.getIntervals();
+ */
