@@ -1,0 +1,83 @@
+class LFUCache {
+    // map key to freq and value
+    Map<Integer, Pair<Integer, Integer>> valMap = new HashMap<>();
+    // map freq to corresponding keys
+    Map<Integer, LinkedHashSet<Integer>> freqMap = new HashMap<>();
+    int capacity;
+    int n;
+    int minFreq;
+
+    public LFUCache(int capacity) {
+        this.capacity = capacity;
+        n = 0;
+        minFreq = 0;
+    }
+
+    private void insert(int key, int value, int freq) {
+        valMap.put(key, new Pair(freq, value));
+        freqMap.putIfAbsent(freq, new LinkedHashSet<>());
+        freqMap.get(freq).add(key);
+    }
+    
+    public int get(int key) {
+        if (!valMap.containsKey(key)) {
+            return -1;
+        }
+
+        // retrieve relevant values
+        Pair<Integer, Integer> oldPair = valMap.get(key);
+        int value = oldPair.getValue();
+        int oldFreq = oldPair.getKey();
+        int newFreq = oldFreq + 1;
+
+        // reinsert node with the new frequency
+        insert(key, value, newFreq);
+
+        // update frequency 
+        Set<Integer> oldFreqSet = freqMap.get(oldFreq);
+        oldFreqSet.remove(key);
+        if (minFreq == oldFreq && oldFreqSet.isEmpty()) {
+            minFreq++;
+        }
+
+        return value;
+    }
+    
+    public void put(int key, int value) {
+        if (capacity <= 0) {
+            return;
+        }
+
+        // if node is already inserted, update its value and frequency
+        if (valMap.containsKey(key)) {
+            // update value
+            valMap.put(key, new Pair(valMap.get(key).getKey(), value));
+
+            // update frequency
+            get(key);
+
+            return;
+        }
+
+        // if cache is currently full, remove lfu
+        if (n == capacity) {
+            Set<Integer> lfuSet = freqMap.get(minFreq);
+            int lruKey = lfuSet.iterator().next();
+            lfuSet.remove(lruKey);
+            valMap.remove(lruKey);
+            n--;
+        }
+
+        // insert the new value and update min frequency to 1
+        insert(key, value, 1);
+        minFreq = 1;
+        n++;
+    }
+}
+
+/**
+ * Your LFUCache object will be instantiated and called as such:
+ * LFUCache obj = new LFUCache(capacity);
+ * int param_1 = obj.get(key);
+ * obj.put(key,value);
+ */
