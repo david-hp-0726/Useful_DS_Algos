@@ -1,0 +1,51 @@
+class Solution {
+    public int bestTeamScore(int[] scores, int[] ages) {
+        // sort players by score in ascending order then by age in ascending order
+        int n = scores.length;
+        int[][] players = new int[n][2];
+        int maxAge = 1;
+        for (int i = 0; i < n; i++) {
+            players[i] = new int[] {scores[i], ages[i]};
+            maxAge = Math.max(ages[i], maxAge);
+        }
+        Arrays.sort(players, (a, b) -> (a[0] != b[0] ? a[0] - b[0] : a[1] - b[1]));
+
+        // Now that scores are in increasing order, we know whenever we
+        // see a player, he must be able to team up with any player before
+        // him that has an equal or smaller age. While this can be
+        // accomplished by scanning the entire array before the current player
+        // to find the team with the maximum score, a fenwick tree (bit) allows
+        // us to do so in log(n) time. Each index i of our bit array stores
+        // the maximum total score that can be possibly obtained from a team 
+        // made of players of age <= i.
+        int[] bit = new int[maxAge + 1];
+        int maxScoreOfAll = 0;
+        for (int i = 0; i < n; i++) {
+            int age = players[i][1];
+            int score = players[i][0];
+            int maxScore = score + getMaxScore(bit, age);
+            updateMaxScore(bit, age, maxScore);
+            maxScoreOfAll = Math.max(maxScore, maxScoreOfAll);
+        }
+
+        return maxScoreOfAll;
+    }
+
+    private int getMaxScore(int[] bit, int age) {
+        int bit_mask = age;
+        int score = 0;
+        while (bit_mask > 0) {
+            score = Math.max(score, bit[bit_mask]);
+            bit_mask -= bit_mask & -bit_mask;
+        }
+        return score;
+    }
+
+    private void updateMaxScore(int[] bit, int age, int maxScore) {
+        int bit_mask = age;
+        while (bit_mask < bit.length) {
+            bit[bit_mask] = Math.max(maxScore, bit[bit_mask]);
+            bit_mask += bit_mask & -bit_mask;
+        }
+    }
+}
