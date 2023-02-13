@@ -1,0 +1,49 @@
+class Solution {
+    public List<String> findRepeatedDnaSequences(String s) {
+        // corner case
+        if (s.length() < 10) {
+            return new ArrayList<>();
+        }
+
+        // initialize variables
+        int len = s.length();
+        int base = 4;
+        int maxVal = (int) Math.pow(base, 10);
+        Map<Character, Integer> map = new HashMap(){{put('A', 0); 
+                                                    put('C', 1);
+                                                    put('G', 2);
+                                                    put('T', 3);}};
+        
+        // map all chars to numbers
+        int[] strNums = new int[len];
+        for (int i = 0; i < len; i++) {
+            strNums[i] = map.get(s.charAt(i));
+        }
+
+        // rabin karp
+        Set<Integer> seen = new HashSet<>();
+        Set<String> dnas = new HashSet<>();
+        int sum = 0;
+
+        for (int i = 0; i < len - 9; i++) {
+            if (i == 0) {
+                // initialize window sum
+                for (int j = 0; j < 10; j++) {
+                    sum = sum * base + strNums[j];
+                }
+            }
+            else {
+                sum = sum * base - strNums[i - 1] * maxVal + strNums[i + 10 - 1];
+            }
+
+            if (seen.contains(sum)) {
+                dnas.add(s.substring(i, i + 10));
+            }
+            else {
+                seen.add(sum);
+            }
+        }
+        
+        return new ArrayList<>(dnas);
+    }
+}
