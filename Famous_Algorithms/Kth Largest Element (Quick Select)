@@ -1,0 +1,41 @@
+class Solution {
+    public int findKthLargest(int[] nums, int k) {
+        int len = nums.length;
+
+        return quickSelect(nums, len - k, 0, len - 1);
+    }
+
+    private int quickSelect(int[] nums, int k, int low, int high) {
+        int pivotIdx = (int) (Math.random() * (high - low)) + low;
+        swap(nums, high, pivotIdx);
+
+        int swapIdx = low;
+        int pivot = nums[high];
+
+        // we don't initialize idx to be low + 1 in case the subarray
+        // only has one element
+        for (int idx = low; idx < high; idx++) {
+            if (nums[idx] < pivot) {
+                swap(nums, swapIdx, idx);
+                swapIdx++;
+            }
+        }
+
+        swap(nums, high, swapIdx);
+        if (swapIdx < k) {
+            return quickSelect(nums, k, swapIdx + 1, high);
+        }
+        else if (swapIdx > k) {
+            return quickSelect(nums, k, low, swapIdx - 1);
+        }
+        else {
+            return nums[swapIdx];
+        }
+    }
+
+    private void swap(int[] nums, int idx1, int idx2) {
+        int temp = nums[idx1];
+        nums[idx1] = nums[idx2];
+        nums[idx2] = temp;
+    }
+}
