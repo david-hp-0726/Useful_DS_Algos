@@ -1,0 +1,380 @@
+class Solution {
+    /*
+        Solution 1: Find the max height of each idx (Brute Force)
+        time: n^2
+        space: n
+    */
+    public List<List<Integer>> getSkyline1(int[][] buildings) {
+        // Step 1: collect all x coordinates in sorted order,
+        //          which saves us from checking coordinates
+        //          where there are no buildings
+        SortedSet<Integer> x_coords = new TreeSet<>();
+        for (int[] building : buildings) {
+            x_coords.add(building[0]);
+            x_coords.add(building[1]);
+        }
+
+        // Step 2: map each x coordinate to its idx
+        List<Integer> edges = new ArrayList<>(x_coords);
+        Map<Integer, Integer> edge_to_idx = new HashMap<>(); 
+        for (int i = 0; i < edges.size(); i++) {
+            int edge = edges.get(i);
+            edge_to_idx.put(edge, i);
+        }
+
+        // Step 3: find the max height at each coordinate
+        int[] maxHeights = new int[edges.size()];
+        for (int[] building : buildings) {
+            int x1 = building[0];
+            int x2 = building[1];
+            int height = building[2];
+            int x1_idx = edge_to_idx.get(x1);
+            int x2_idx = edge_to_idx.get(x2);
+
+            // x2_idx is not visited so that we can detect
+            // when height drops to 0
+            for (int i = x1_idx; i < x2_idx; i++) {
+                maxHeights[i] = Math.max(height, maxHeights[i]);
+            }
+        }   
+
+        // Step 4: record every change in max height
+        List<List<Integer>> res = new ArrayList<>();
+        for (int i = 0; i < maxHeights.length; i++) {
+            int height = maxHeights[i];
+            int edge = edges.get(i);
+
+            if (res.isEmpty() || res.get(res.size() - 1).get(1) != height) {
+                res.add(new ArrayList<>(List.of(edge, height)));
+            }
+        }
+
+        return res;
+    }
+
+    /*
+        Solution 2: Find max height with an imaginary vertical line
+        time: n^2
+        space: n
+    */
+    public List<List<Integer>> getSkyline2(int[][] buildings) {
+        SortedSet<Integer> x_coords = new TreeSet<>();
+        for (int[] building : buildings) {
+            int x1 = building[0];
+            int x2 = building[1];
+            x_coords.add(x1);
+            x_coords.add(x2);
+        }
+
+        List<Integer> edges = new ArrayList<>(x_coords);
+        List<List<Integer>> res = new ArrayList<>();
+        for (int edge : edges) {
+            int maxHeight = 0;
+            for (int[] building : buildings) {
+                int x1 = building[0];
+                int x2 = building[1];
+                int height = building[2];
+
+                if (x1 <= edge && x2 > edge) {
+                    maxHeight = Math.max(height, maxHeight);
+                }
+            }
+
+            if (res.isEmpty() || res.get(res.size() - 1).get(1) != maxHeight) {
+                res.add(new ArrayList<>(List.of(edge, maxHeight)));
+            }
+        }
+
+        return res;
+    }
+
+    /*
+        Solution 3: Find max with an imaginary vertical line using pq
+        time: n log (n)
+        space: n
+    */
+    public List<List<Integer>> getSkyline3(int[][] buildings) {
+        List<List<Integer>> edges = new ArrayList<>();
+        for (int i = 0; i < buildings.length; i++) {
+            int x1 = buildings[i][0];
+            int x2 = buildings[i][1];
+            edges.add(Arrays.asList(x1, i));
+            edges.add(Arrays.asList(x2, i));
+        }
+        Collections.sort(edges, (a, b) -> {
+            return a.get(0) - b.get(0);
+        });
+
+        Queue<List<Integer>> pq = new PriorityQueue<>((a, b) -> {
+            return b.get(1) - a.get(1);
+        });
+        List<List<Integer>> res = new ArrayList<>();
+        int idx = 0, left, right, height, maxHeight;
+        
+        while (idx < edges.size()) {
+            int edge = edges.get(idx).get(0);
+
+            while (!pq.isEmpty() && pq.peek().get(0) <= edge) {
+                pq.remove();
+            }
+
+            while (idx < edges.size() && edge == edges.get(idx).get(0)) {
+                int[] building = buildings[edges.get(idx).get(1)];
+                left = building[0];
+
+                if (edge == left) {
+                    right = building[1];
+                    height = building[2];
+                    pq.add(Arrays.asList(right, height));
+                }
+                idx++;
+            }
+
+            maxHeight = (pq.isEmpty()) ? 0 : pq.peek().get(1);
+
+            if (res.isEmpty() || res.get(res.size() - 1).get(1) != maxHeight) {
+                res.add(Arrays.asList(edge, maxHeight));
+            }
+        }
+
+        return res;
+    }
+
+    /*
+        Solution 4: two pq's
+        time: n log n
+        space: n
+    */
+    public List<List<Integer>> getSkyline4(int[][] buildings) {
+        List<List<Integer>> edges = new ArrayList<>();
+        for (int i = 0; i < buildings.length; i++) {
+            int left = buildings[i][0];
+            int right = buildings[i][1];
+            int height = buildings[i][2];
+            edges.add(Arrays.asList(left, height));
+            edges.add(Arrays.asList(right, -height));
+        }
+        Collections.sort(edges, (a, b) -> {
+            return a.get(0) - b.get(0);
+        });
+
+        Queue<Integer> live = new PriorityQueue<>((a, b) -> b - a);
+        Queue<Integer> past = new PriorityQueue<>((a, b) -> b - a);
+        List<List<Integer>> res = new ArrayList<>();
+        int idx = 0;
+
+        while (idx < edges.size()) {
+            int edge = edges.get(idx).get(0);
+
+            while (idx < edges.size() && edges.get(idx).get(0) == edge) {
+                int height = edges.get(idx).get(1);
+
+                if (height > 0) {
+                    live.add(height);
+                }
+                else {
+                    past.add(-height);
+                }
+                idx++;
+            }
+
+            while (!past.isEmpty() && past.peek().equals(live.peek())) {
+                past.remove();
+                live.remove();
+            }
+
+            int maxHeight = (live.isEmpty()) ? 0 : live.peek();
+
+            if (res.isEmpty() || res.get(res.size() - 1).get(1) != maxHeight) {
+                res.add(Arrays.asList(edge, maxHeight));
+            }
+        }
+
+        return res;
+    }
+
+    /*
+        Solution 5: Union Find
+        time: n log n
+        space: n
+    */
+    private class UnionFind {
+        int[] roots;
+        public UnionFind(int n) {
+            roots = new int[n];
+            for (int i = 0; i < n; i++) {
+                roots[i] = i;
+            }
+        }
+
+        public int getRoot(int idx) {
+            if (roots[idx] != idx) {
+                roots[idx] = getRoot(roots[idx]);
+            }
+            return roots[idx];
+        }
+
+        public void union(int idx1, int idx2) {
+            roots[idx1] = roots[idx2];
+        }
+    }
+
+    public List<List<Integer>> getSkyline5(int[][] buildings) {
+        // Step 1: get all unique edges
+        SortedSet<Integer> x_coords = new TreeSet<>();
+        for (int[] building : buildings) {
+            x_coords.add(building[0]);
+            x_coords.add(building[1]);
+        }
+
+        // Step 2: map all edges to their corresponding index
+        List<Integer> edges = new ArrayList<>(x_coords);
+        Map<Integer, Integer> edge_to_idx = new HashMap<>();
+        for (int i = 0; i < edges.size(); i++) {
+            edge_to_idx.put(edges.get(i), i);
+        }
+
+        // Step 3: sort buildings from tallest to shortest
+        Arrays.sort(buildings, (a, b) -> {
+            return b[2] - a[2];
+        });
+
+        // Step 4: visit the buildings from tallest to shortest
+        //         each time take each coordinate x_coord from left_edge 
+        //         to right_edge, connect x_coord to root_coord where
+        //         every height in [x_coord, root_coord) are equal
+        //         or greater in height than x_coord
+        UnionFind uf = new UnionFind(edges.size());
+        int[] heights = new int[edges.size()];
+        
+        for (int[] building : buildings) {
+            int left_idx = edge_to_idx.get(building[0]);
+            int right_idx = edge_to_idx.get(building[1]);
+            int height = building[2];
+            
+            while (left_idx < right_idx) {
+                left_idx = uf.getRoot(left_idx);
+
+                // if left idx is not rooted to another taller
+                // building, or if the right edge of that root
+                // building is still to the left of the right edge
+                // of the current building, that means left_idx is
+                // the tallest building at the current idx
+                if (left_idx < right_idx) {
+                    heights[left_idx] = height;
+                    uf.union(left_idx, right_idx);
+                    left_idx++;
+                }
+            }
+        }
+
+        List<List<Integer>> res = new ArrayList<>();
+        for (int i = 0; i < heights.length; i++) {
+            if (i == 0 || (heights[i - 1] != heights[i])) {
+                res.add(Arrays.asList(edges.get(i), heights[i]));
+            }
+        }
+
+        return res;
+    }
+
+    /*
+        Solution 6: Divide and Conquer
+        time: n log n
+        space: n
+    */
+    public List<List<Integer>> getSkyline(int[][] buildings) {
+        return dp(buildings, 0, buildings.length - 1);
+    }
+
+    private List<List<Integer>> dp(int[][] buildings, int left, int right) {
+        // base case: if there is only one building
+        if (left == right) {
+            int x1 = buildings[left][0];
+            int x2 = buildings[left][1];
+            int height = buildings[left][2];
+            List<List<Integer>> res = new ArrayList<>();
+            res.add(Arrays.asList(x1, height));
+            res.add(Arrays.asList(x2, 0));
+            return res;
+        }
+
+        // regular case
+        int mid = (right + left) / 2;
+        List<List<Integer>> leftRes = dp(buildings, left, mid);
+        List<List<Integer>> rightRes = dp(buildings, mid + 1, right);     
+
+        return mergeSkylines(leftRes, rightRes);
+    }
+
+    private List<List<Integer>> mergeSkylines(List<List<Integer>> leftRes, List<List<Integer>> rightRes) {
+        List<List<Integer>> res = new ArrayList<>();
+        int leftLen = leftRes.size();
+        int rightLen = rightRes.size();
+        int leftIdx, rightIdx, leftEdge, rightEdge, leftHeight, rightHeight, prevLeftHeight, prevRightHeight, currEdge, maxHeight;
+        leftIdx = rightIdx = leftEdge = rightEdge = leftHeight = rightHeight = prevLeftHeight = prevRightHeight = currEdge = maxHeight = 0;
+
+        for (int i = 0; i < leftLen + rightLen; i++) {
+            if (rightIdx >= rightLen) {
+                // if we've move passed all right buildings, 
+                // we can safely add the current left building's height
+                // into result (since we know heights in leftRes will not
+                // be equal to adjacent ones)
+                leftEdge = leftRes.get(leftIdx).get(0);
+                leftHeight = leftRes.get(leftIdx).get(1);
+                res.add(Arrays.asList(leftEdge, leftHeight));
+                leftIdx++;
+                continue;
+            }
+
+            if (leftIdx >= leftLen) {
+                rightEdge = rightRes.get(rightIdx).get(0);
+                rightHeight = rightRes.get(rightIdx).get(1);
+                res.add(Arrays.asList(rightEdge, rightHeight));
+                rightIdx++;
+                continue;
+            }
+
+            leftEdge = leftRes.get(leftIdx).get(0);
+            rightEdge = rightRes.get(rightIdx).get(0);
+             
+            if (leftEdge < rightEdge) {
+                leftHeight = leftRes.get(leftIdx).get(1);
+                currEdge = leftEdge; 
+
+                // This is because we don't know previous
+                // rightHeight is still covering current
+                // leftHeight. Notice if we've moved pass
+                // previous rightHeight, then prevRightHeight = 0
+                maxHeight = Math.max(leftHeight, prevRightHeight);
+                leftIdx++;
+                prevLeftHeight = leftHeight;
+            }
+            else if (rightEdge < leftEdge) {
+                rightHeight = rightRes.get(rightIdx).get(1);
+                currEdge = rightEdge;
+                maxHeight = Math.max(rightHeight, prevLeftHeight);
+                rightIdx++;
+                prevRightHeight = rightHeight;
+            }
+            else {
+                leftHeight = leftRes.get(leftIdx).get(1);
+                rightHeight = rightRes.get(rightIdx).get(1);
+                currEdge = leftEdge;
+                maxHeight = Math.max(leftHeight, rightHeight);
+                leftIdx++;
+                rightIdx++;
+                i++;
+                prevLeftHeight = leftHeight;
+                prevRightHeight = rightHeight;
+            }
+
+            if (res.isEmpty() || res.get(res.size() - 1).get(1) != maxHeight) {
+                res.add(Arrays.asList(currEdge, maxHeight));
+            }
+        }
+
+        return res;
+    }
+}
+
