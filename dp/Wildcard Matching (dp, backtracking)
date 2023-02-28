@@ -1,0 +1,200 @@
+class Solution {
+    /*
+        Solution 1: Recursion
+    */
+    Boolean[][] memo;
+    public boolean isMatch1(String s, String p) {
+        memo = new Boolean[s.length() + 1][p.length()];
+        return dp(s, p, 0, 0);
+    }
+
+    private boolean dp(String s, String p, int sIdx, int pIdx) {
+        if (sIdx >= s.length() && pIdx >= p.length()) {
+            return true;
+        }
+
+        if (pIdx >= p.length()) {
+            return false;
+        }
+
+        sIdx = Math.min(s.length(), sIdx);
+        if (memo[sIdx][pIdx] != null) {
+            return memo[sIdx][pIdx];
+        }
+         
+        char sChar = (sIdx < s.length()) ? s.charAt(sIdx) : '!';
+        char pChar = p.charAt(pIdx);
+        boolean res = false;
+
+        if (sChar == pChar || (sChar != '!' && pChar == '?')) {
+            res = dp(s, p, sIdx + 1, pIdx + 1);
+        }
+
+        if (pChar == '*') {
+            if (sChar == '!') {
+                res = dp(s, p, sIdx, pIdx + 1);
+            }
+            else {
+                res = dp(s, p, sIdx + 1, pIdx + 1) || dp(s, p, sIdx + 1, pIdx) || dp(s, p, sIdx, pIdx + 1);
+            }
+        }
+
+        memo[sIdx][pIdx] = res;
+        return res;
+    }
+
+
+    /*
+        Solution 2: Dynamic Programming
+    */
+    public boolean isMatch2(String s, String p) {
+        if (s.equals("") && p.equals("")) {
+            return true;
+        }
+
+        int sLen = s.length(), pLen = p.length();
+        boolean[][] memo = new boolean[sLen + 1][pLen + 1];
+        memo[sLen][pLen] = true;
+
+        for (int i = Math.max(0, sLen); i >= 0; i--) {
+            char sChar = (i < sLen) ? s.charAt(i) : '#';
+            for (int j = Math.max(0, pLen - 1); j >= 0; j--) {
+                char pChar = (j < pLen) ? p.charAt(j) : '@';
+                boolean match = false;
+                if (pChar == '*') {
+                    boolean notUse = memo[i][j + 1];
+                    boolean onlyUseOnce = (i >= sLen && notUse) || (i < sLen && memo[i + 1][j + 1]);
+                    boolean keepUsing = (i >= sLen && notUse) || (i < sLen && memo[i + 1][j]);
+                    match = onlyUseOnce || keepUsing || notUse;
+                }
+                else if (pChar == '?' || pChar == sChar) {
+                    match = (i < sLen) && (memo[i + 1][j + 1]);
+                }  
+                memo[i][j] = match;  
+            }
+        }
+
+        return memo[0][0];
+    }
+
+    /*
+        Solution 2.5: Alternative Dynamic Programming Implementation
+    */
+    public boolean isMatch3(String s, String p) {
+        int sLen = s.length();
+        int pLen = p.length();
+        boolean[][] memo = new boolean[pLen + 1][sLen + 1];
+        memo[0][0] = true; // base case 0: two empty spaces match
+
+        // pre-treatment: any prefix * can match entire s
+        int pStartIdx = 1;
+        while (pStartIdx <= pLen && p.charAt(pStartIdx - 1) == '*') {
+            Arrays.fill(memo[pStartIdx], true);
+            pStartIdx++;
+        }
+
+        for (int i = 1; i <= pLen; i++) {
+            char pChar = p.charAt(i - 1);
+            
+            // alternative to pre-treatment: * can match empty string (but we need to assume p.char(0...i-1) also match the empty string)
+            // if (pChar == '*') {
+            //     memo[i][0] = memo[i - 1][0];
+            // }
+
+            for (int j = 1; j <= sLen; j++) {
+                char sChar = s.charAt(j - 1);
+
+                if (pChar == '*') {
+                    boolean useStar = memo[i][j - 1];
+                    boolean notUseStar = memo[i - 1][j];
+                    memo[i][j] = useStar | notUseStar;
+                }
+                else if (sChar == pChar || pChar == '?'){
+                    memo[i][j] = memo[i - 1][j - 1];
+                }
+            }
+        }
+
+        return memo[pLen][sLen];
+    }
+
+    /*
+        Solution 2.75: Space Optimized Dynamic Programming
+    */
+    public boolean isMatch4(String s, String p) {
+        int sLen = s.length(), pLen = p.length();
+        boolean[] curr = new boolean[sLen + 1];
+        boolean[] prev = new boolean[sLen + 1];
+        prev[0] = true;
+
+        for (int i = 1; i <= pLen; i++) {
+            char pChar = p.charAt(i - 1);
+            if (pChar == '*') {
+                curr[0] = prev[0];
+            }
+
+            for (int j = 1; j <= sLen; j++) {
+                char sChar = s.charAt(j - 1);
+
+                if (pChar != '*') {
+                    curr[j] = prev[j - 1] && (pChar == sChar || pChar == '?');
+                }
+                else {
+                    boolean useStar = curr[j - 1];
+                    boolean notUseStar = prev[j];
+                    curr[j] = useStar | notUseStar;
+                }
+            }
+
+            prev = curr;
+            curr = new boolean[sLen + 1];
+        }
+
+        return prev[sLen];
+    }
+
+
+    /*
+        Solution 3: Backtracking
+    */
+    public boolean isMatch5(String s, String p) {
+        // Whenever we encounter a new star, we make note of its index,
+        // try continue without using that star, and if we fail to match
+        // the pattern, then go back and try using the star 1,2,...,n times
+        int sLen = s.length(), pLen = p.length();
+        int sIdx = 0, pIdx = 0, sStarIdx = -1, pStarIdx = -1;
+
+        while (sIdx < sLen) {
+            char sChar = s.charAt(sIdx);
+            char pChar = (pIdx < pLen) ? p.charAt(pIdx) : '@';
+
+            if (sChar == pChar || pChar == '?') {
+                sIdx++;
+                pIdx++;
+            }
+            else if (pChar == '*') {
+                // try not using the star
+                pStarIdx = pIdx;
+                sStarIdx = sIdx;
+                pIdx++;
+            }
+            else if (pStarIdx != -1){
+                // try using the star for 1 additional character
+                pIdx = pStarIdx + 1;
+                sIdx = sStarIdx + 1;
+                sStarIdx++;
+            }
+            else {
+                return false;
+            }
+        }
+
+        while (pIdx < pLen) {
+            if (p.charAt(pIdx) != '*') {
+                return false;
+            }
+            pIdx++;
+        }
+        return true;
+    }
+}
