@@ -1,0 +1,65 @@
+import java.util.*;
+
+class Program {
+  public int[][] stableInternships(int[][] interns, int[][] teams) {
+    int n = teams.length;
+    HashMap<Integer, Integer> chosenInterns = new HashMap<>();
+    int[][] teamRanks = new int[n][n];
+
+    // map each intern to their rank in each team
+    for (int teamIdx = 0; teamIdx < n; teamIdx++) {
+      int[] team = teams[teamIdx];
+      for (int rank = 0; rank < n; rank++) {
+        int intern = team[rank];
+        teamRanks[teamIdx][intern] = rank;
+      }
+    }
+
+    // keep track of all the interns that are free and their
+    // top choices
+    Stack<Integer> freeInterns = new Stack<>();
+    int[] internChoices = new int[n]; // default initialized to 0
+    for (int internIdx = 0; internIdx < n; internIdx++) {
+      freeInterns.add(internIdx);
+    }
+
+    // keep matching until each intern is assigned a team
+    while (!freeInterns.empty()) {
+      int intern = freeInterns.pop();
+      int team = interns[intern][internChoices[intern]];
+      internChoices[intern]++;
+
+      // if the team has not received any intern
+      // temporarily assign the intern to the team
+      if (!chosenInterns.containsKey(team)) {
+        chosenInterns.put(team, intern);
+        continue;
+      }
+
+      // if two interns vie for the same team, give
+      // the opportunity to the intern with a higher rank
+      int prevIntern = chosenInterns.get(team);
+      int prevInternRank = teamRanks[team][prevIntern];
+      int currInternRank = teamRanks[team][intern];
+
+      if (prevInternRank < currInternRank) {
+        freeInterns.push(intern);
+      }
+      else {
+        chosenInterns.put(team, intern);
+        freeInterns.push(prevIntern);
+      }
+    }
+
+    // turn the map into an array
+    int[][] res = new int[n][2];
+    int resIdx = 0;
+    for (int team : chosenInterns.keySet()) {
+      int intern = chosenInterns.get(team);
+      res[resIdx] = new int[] {intern, team};
+      resIdx++;
+    }
+  
+    return res;
+  }
+}
