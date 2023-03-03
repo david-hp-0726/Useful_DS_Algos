@@ -6,7 +6,11 @@
 // Consider the following example
 // S: ABBABCABC
 // P: ABCABC
-// Bad Match Table (C is 3 instead of -1 because we don’t take the last character into account when building BMT):
+// Bad Match Table (The last character is not taken into consideration since m - last_idx - 1 == 0. In other words, even if the last characters do match,
+// 		    we would still want to skip ahead by the length of the pattern to avoid being stuck. When matching 'ABCD', 'EEED', even if the last letters match
+// 		    but the fact that the last letter doesn't appear anywhere else in the bmt tells us that we can skip ahead a distance of 4. This is different than
+//		    the following scenario, 'DABCD', 'DEEED', where because the last character 'D' shows us somewhere else in the string, there is a chance
+// 		    that we can end up matching 'DABCDEEED' with 'DEEED'):
 // A  B  C 
 // 2  1  3
 
