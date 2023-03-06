@@ -1,0 +1,749 @@
+import java.util.*;
+
+public class BTree {
+  /*
+    Private Fields & Class
+  */
+  private int M;
+  private Node root;
+  private int size;
+
+  private class Node {
+    private int n;
+    private int[] keys;
+    private Node[] children;
+    private boolean isLeaf;
+
+    public Node() {
+      keys = new int[M * 2];
+      children = new Node[M * 2 + 1];
+      n = 0;
+      isLeaf = true;
+    }
+
+    public String toString() {
+      StringBuilder str = new StringBuilder("[ ");
+      for (int i = 0; i < n; i++) {
+        str.append(keys[i] + " ");
+      }
+      str.append(']');
+      return str.toString();
+    }
+
+    public int findKey(int key) {
+      for (int i = 0; i < n; i++) {
+        if (keys[i] == key) {
+          return i;
+        }
+      }
+
+      return -1;
+    }
+  }
+
+
+  /*
+    Public Methods & Constructor
+  */
+  public BTree(int M) {
+    this.M = M;
+    root = new Node();
+    size = 0;
+  }
+
+  public void insert(int key) {
+    if (root.n == M * 2 - 1) {
+      Node newRoot = new Node();
+      newRoot.isLeaf = false;
+      split(newRoot, root, 0);
+      root = newRoot;
+    }
+
+    insertValue(root, key);
+  }
+
+  public Node get(int key) {
+    return getValue(root, key);
+  }
+
+  public void remove(int key) {
+    removeValue(root, key);
+  }
+
+  /*
+    Private Methods
+  */
+  // Description: Split child node in two and insert child median into node at insertIdx
+  private void split(Node node, Node child, int insertIdx) {
+    Node left = new Node();
+    Node right = new Node();
+    left.isLeaf = child.isLeaf;
+    right.isLeaf = child.isLeaf;
+
+    // split keys and grandchildren to left and right child
+    for (int i = 0; i <= M; i++) {
+      if (i < M) {
+        left.keys[i] = child.keys[i];
+        right.keys[i] = child.keys[i + M];
+      }
+      left.children[i] = child.children[i];
+      right.children[i] = child.children[i + M];
+    }
+
+    // insert median, left child, and right child into node
+    for (int i = node.n; i > insertIdx; i--) {
+      node.keys[i] = node.keys[i - 1];
+    } 
+    int median = child.keys[M - 1];
+    node.keys[insertIdx] = median;
+
+
+    for (int i = node.n + 1; i > insertIdx + 1; i--) {
+      node.children[i] = node.children[i - 1];
+    }
+    node.children[insertIdx] = left;
+    node.children[insertIdx + 1] = right;   
+
+    // update counts
+    left.n = M - 1;
+    right.n = M - 1;
+    node.n++;
+  }
+
+  // Description: Insert a node to a leaf while preemptively splitting any full nodes along the way
+  private void insertValue(Node node, int key) {
+    if (!node.isLeaf) {
+      // find the largest element smaller than key (ceil), go
+      // down the node to the right of it
+      int ceilIdx = node.n - 1;
+      while (ceilIdx >= 0 && node.keys[ceilIdx] > key) {
+        ceilIdx--;
+      }
+      int childIdx = ceilIdx + 1;
+
+      // if ceil's right child is not already created, make one
+      if (node.children[childIdx] == null) {
+        node.children[childIdx] = new Node();
+      }
+
+      // if ceil's right child is full, split it
+      if (node.children[childIdx].n == M * 2 - 1) {
+        split(node, node.children[childIdx], childIdx);
+
+        if (node.keys[childIdx] < key) {
+          childIdx++;
+        }
+      }
+
+      insertValue(node.children[childIdx], key);
+    }
+
+    if (node.isLeaf) {
+      int ceilIdx = node.n - 1;
+      while (ceilIdx >= 0 && node.keys[ceilIdx] > key) {
+        node.keys[ceilIdx + 1] = node.keys[ceilIdx];
+        ceilIdx--;
+      }
+      int insertIdx = ceilIdx + 1;
+      node.keys[insertIdx] = key;
+      node.n++;
+      size++;
+    }
+  }
+
+  // Description: Retrieve a given key from the tree
+  private Node getValue(Node node, int key) {
+    // find the first value no smaller than key in node (ceil)
+    int ceilIdx = node.n - 1;
+    while (ceilIdx >= 0 && node.keys[ceilIdx] > key) {
+      ceilIdx--;
+    }
+
+    // if key is found
+    if (node.keys[ceilIdx] == key) {
+      return node; 
+    }
+
+    // if key is not found
+    if (node.isLeaf) {
+      return null;
+    }
+    else {
+      int childIdx = ceilIdx + 1;
+      return getValue(node.children[childIdx], key);
+    }
+  }
+
+  // Description: Remove a key from the tree if the key exists, while adjusting the structure of the tree.
+  private void removeValue(Node node, int key) {
+    int idx = node.findKey(key);
+
+    /**
+    * SCENARIO 1: Key is found in current node
+    */
+    if (idx != -1) {
+      /*
+        Case 1: The node is a leaf
+      */
+      if (node.isLeaf) {
+        for (int i = idx; i < node.n - 1; i++) {
+          node.keys[i] = node.keys[i + 1];
+        }
+        node.n--;
+        return;
+      }
+
+      /*
+        Case 2: The node is an internal node
+      */
+
+      /*
+        Case 2a: If left subtree has a node to spare, 
+                  replace the key with the left predecessor
+                  (i.e. greatest key in the left subtree)
+      */
+      Node left = node.children[idx];
+      if (left.n >= M) {
+        Node predecessor = left;
+        while (!predecessor.isLeaf) {
+          // Note the tree grows by splitting the root, and so we can safely
+          // assume that every non-leaf node has full children
+          predecessor = predecessor.children[predecessor.n];
+        }
+        int predecessorKey = predecessor.keys[predecessor.n - 1];
+        node.keys[idx] = predecessorKey;
+
+        // since the predecessor is still in the left subtree,
+        // we still need to delete it
+        removeValue(left, predecessorKey);
+        return;
+      }
+      
+
+      /*
+        Case 2b: If right subtree has a node to spare,
+                  replace the key with the right successor
+                  (i.e. smallest key in the right subtree)
+      */
+      Node right = node.children[idx + 1];
+      if (right.n >= M) {
+        Node successor = right;
+        while (!successor.isLeaf) {
+          successor = successor.children[0];
+        }
+        int successorKey = successor.keys[successor.n - 1];
+        node.keys[idx] = successorKey;
+
+        removeValue(right, successorKey);
+        return;
+      }
+
+      /*
+        Case 2c: If both children run short of keys, 
+                  merge them with the current key,
+                  then try deleting the current key from the merged node
+      */
+      // copy current key and everything from left, right children into merge
+      Node merge = left;
+      merge.keys[merge.n++] = key;
+      int tempSize = merge.n;
+
+      for (int i = tempSize, j = 0; j < right.n; i++, j++) {
+        merge.keys[i] = right.keys[j];
+      }
+
+      for (int i = tempSize, j = 0; j <= right.n; i++, j++) {
+        merge.children[i] = right.children[j];
+      }
+      merge.n += right.n;
+
+
+      // remove key and replace left, right children with merged child
+      for (int i = idx; i < node.n - 1; i++) {
+        node.keys[i] = node.keys[i + 1];
+      }
+
+      for (int i = idx + 1; i < node.n; i++) {
+        node.children[i] = node.children[i + 1];
+      } 
+      node.children[idx] = merge;
+      node.n--;
+      
+
+      // if after deletion, current node becomes empty, then discard it
+      if (node.n == 0) {
+        if (node == root) {
+          root = node.children[0];
+        }
+        node = node.children[0];
+      }
+
+      // remove key from merged child
+      removeValue(merge, key);
+    }
+
+
+    /**
+    * SCENARIO 2: Key is not found in current node
+    */
+    if (idx == -1) {
+      /*
+        Case 0: Key does not exist in the tree
+      */
+      if (node.isLeaf) {
+        return;
+      }
+
+      /*
+        Case 3: Find the ceil and then go down its right child.
+      */
+      int ceilIdx = node.n - 1;
+      while (ceilIdx >= 0 && node.keys[ceilIdx] > key) {
+        ceilIdx--;
+      }
+      int childIdx = ceilIdx + 1;
+      Node child = node.children[childIdx];
+
+      /*
+        Case 3a: Child has enough nodes 
+      */
+      if (child.n >= M) {
+        removeValue(child, key);
+        return;
+      }
+
+      /*
+        Case 3b: Child does not have enough, but right sibling has a key to spare
+      */
+      if (childIdx < node.n && node.children[childIdx + 1].n >= M) {
+        // Take a key from right sibling, give the ceil key to child,
+        // then insert the spared key at the ceil key's location
+        Node left = node.children[childIdx];
+        Node right = node.children[childIdx + 1];
+        Node sparedGrandchild = right.children[0];
+        int sparedKey = right.keys[0];
+        int replaceKey = node.keys[childIdx];
+
+        node.keys[childIdx] = sparedKey;
+        left.keys[left.n] = replaceKey;
+        left.children[left.n + 1] = sparedGrandchild;
+        right.n--;
+        left.n++;
+
+        for (int i = 0; i < right.n; i++) {
+          if (i < right.n - 1) {
+            right.keys[i] = right.keys[i + 1];
+          }
+          right.children[i] = right.children[i + 1];
+        }
+
+        removeValue(left, key);
+        return;
+      }
+
+
+      /*
+        Case 3c: Child does not have enough, but left sibling has a key to spare
+      */
+      if (childIdx > 0 && node.children[childIdx - 1].n >= M) {
+        childIdx--;
+        Node left = node.children[childIdx];
+        Node right = node.children[childIdx + 1];
+        Node sparedGrandchild = left.children[left.n];
+        int sparedKey = left.keys[left.n - 1];
+        int replaceKey = node.keys[childIdx];
+
+        for (int i = right.n; i >= 0; i--) {
+          if (i < right.n) {
+            right.keys[i + 1] = right.keys[i];
+          }
+          right.children[i + 1] = right.children[i];
+        }
+
+        node.keys[childIdx] = sparedKey;
+        right.keys[0] = replaceKey;
+        right.children[0] = sparedGrandchild;
+        left.n--;
+        right.n++;
+
+        removeValue(right, key);
+        return;
+      }
+
+      /* 
+        Case 3d: Right sibling also does not have enough. Merge the key
+                  with its two children.
+      */
+      int mergeIdx = (childIdx < node.n) ? childIdx : childIdx - 1;
+      Node left = node.children[mergeIdx];
+      Node right = node.children[mergeIdx + 1];
+
+      // move everything to the merged node
+      Node merge = left;
+      merge.keys[merge.n++] = node.keys[mergeIdx];
+      int tempSize = merge.n;
+
+      for (int i = tempSize, j = 0; j <= right.n; i++, j++) {
+        if (j < right.n) {
+          merge.keys[i] = right.keys[j];
+        }
+        merge.children[i] = right.children[j];
+      }
+      merge.n += right.n;
+
+      // remove key and right child from the current node
+      for (int i = mergeIdx; i < node.n - 1; i++) {
+        node.keys[i] = node.keys[i + 1];
+        node.children[i + 1] = node.children[i + 2];
+      } 
+      node.children[mergeIdx] = merge;
+      
+      // if node becomes empty, discard it 
+      node.n--;
+      if (node.n == 0) {
+        if (node == root) {
+          root = node.children[0];
+        }
+        node = node.children[0];
+      }
+
+      removeValue(merge, key);
+    } 
+  } 
+
+  /*
+    Print Methods
+  */
+  private void insertAndPrint(int key) {
+    if (root.n == M * 2 - 1) {
+      Node newRoot = new Node();
+      newRoot.isLeaf = false;
+      split(newRoot, root, 0);
+      root = newRoot;
+    }
+
+    System.out.println("Tree Before Inserting " + key + ": ");
+    printTree();
+
+    insertValue(root, key);
+
+    System.out.println("Tree After Inserting " + key + ": ");
+    printTree();
+  }
+
+  private void removeAndPrint(int key) {
+    System.out.println("\nTree Before Removing " + key + ": ");
+    printTree();
+    removeValueAndPrint(root, key);
+    System.out.println("Tree After Removing " + key + ": ");
+    printTree();
+  }
+
+  private void removeValueAndPrint(Node node, int key) {
+    int idx = node.findKey(key);
+
+    /**
+    * SCENARIO 1: Key is found in current node
+    */
+    if (idx != -1) {
+      /*
+        Case 1: The node is a leaf
+      */
+      if (node.isLeaf) {
+        for (int i = idx; i < node.n - 1; i++) {
+          node.keys[i] = node.keys[i + 1];
+        }
+        node.n--;
+
+        return;
+      }
+      /*
+        Case 2: The node is an internal node
+      */
+
+      /*
+        Case 2a: If left subtree has a node to spare, 
+                  replace the key with the left predecessor
+                  (i.e. greatest key in the left subtree)
+      */
+      Node left = node.children[idx];
+      if (left.n >= M) {
+        Node predecessor = left;
+        while (!predecessor.isLeaf) {
+          predecessor = predecessor.children[predecessor.n];
+        }
+        int predecessorKey = predecessor.keys[predecessor.n - 1];
+        node.keys[idx] = predecessorKey;
+
+        // **
+        System.out.println("CASE 2A: " + key + " is replaced with predecessor " + predecessorKey + " in " + node.toString());
+        // **
+
+        removeValueAndPrint(left, predecessorKey);
+        return;
+      }
+      
+
+      /*
+        Case 2b: If right subtree has a node to spare,
+                  replace the key with the right successor
+                  (i.e. smallest key in the right subtree)
+      */
+      Node right = node.children[idx + 1];
+      if (right.n >= M) {
+        Node successor = right;
+        while (!successor.isLeaf) {
+          successor = successor.children[0];
+        }
+        int successorKey = successor.keys[successor.n - 1];
+        node.keys[idx] = successorKey;
+
+        // **
+        System.out.println("CASE 2B: " + key + " is replaced with successor " + successorKey + " in " + node.toString());
+        // **
+
+        removeValueAndPrint(right, successorKey);
+        return;
+      }
+
+      /*
+        Case 2c: If both children run short of keys, 
+                  merge them with the current key,
+                  then try deleting the current key from the merged node
+      */
+      // copy current key and everything from left, right children into merge
+      // **
+      System.out.println("CASE 2C: " + key + " is merged with " + left.toString() + " and " + right.toString());
+      // **
+      Node merge = left;
+      merge.keys[merge.n++] = key;
+      int tempSize = merge.n;
+
+      for (int i = tempSize, j = 0; j < right.n; i++, j++) {
+        merge.keys[i] = right.keys[j];
+      }
+
+      for (int i = tempSize, j = 0; j <= right.n; i++, j++) {
+        merge.children[i] = right.children[j];
+      }
+      merge.n += right.n;
+
+
+      // remove key and replace left, right children with merged child
+      for (int i = idx; i < node.n - 1; i++) {
+        node.keys[i] = node.keys[i + 1];
+      }
+
+      for (int i = idx + 1; i < node.n; i++) {
+        node.children[i] = node.children[i + 1];
+      } 
+      node.children[idx] = merge;
+      node.n--;
+      
+
+      // if after deletion, current node becomes empty, then discard it
+      if (node.n == 0) {
+        if (node == root) {
+          root = node.children[0];
+        }
+        node = node.children[0];
+      }
+
+      // remove key from merged child
+      removeValueAndPrint(merge, key);
+    }
+
+    /**
+    * SCENARIO 2: Key is not found in current node
+    */
+    if (idx == -1) {
+      /*
+        Case 0: Key does not exist in the tree
+      */
+      if (node.isLeaf) {
+        System.out.println(key + " is not found. Tree After Deletion: ");
+        printTree();
+        return;
+      }
+
+      /*
+        Case 3: Find the ceil and then go down its right child.
+      */
+      int ceilIdx = node.n - 1;
+      while (ceilIdx >= 0 && node.keys[ceilIdx] > key) {
+        ceilIdx--;
+      }
+      int childIdx = ceilIdx + 1;
+      Node child = node.children[childIdx];
+
+      /*
+        Case 3a: Child has enough nodes 
+      */
+      if (child.n >= M) {
+        removeValueAndPrint(child, key);
+        return;
+      }
+
+      /*
+        Case 3b: Child does not have enough, but right sibling has a key to spare
+      */
+      if (childIdx < node.n && node.children[childIdx + 1].n >= M) {
+        // Take a key from right sibling, give the ceil key to child,
+        // then insert the spared key at the ceil key's location
+        Node left = node.children[childIdx];
+        Node right = node.children[childIdx + 1];
+        Node sparedGrandchild = right.children[0];
+        int sparedKey = right.keys[0];
+        int replaceKey = node.keys[childIdx];
+
+        // **
+        System.out.println("CASE 3b: " + sparedKey + " is taken from " + right.toString() + ", replacing " + replaceKey + ". The replaced " + replaceKey + " then goes to "  + left.toString());
+        // **
+
+        node.keys[childIdx] = sparedKey;
+        left.keys[left.n] = replaceKey;
+        left.children[left.n + 1] = sparedGrandchild;
+        right.n--;
+        left.n++;
+
+        for (int i = 0; i < right.n; i++) {
+          if (i < right.n - 1) {
+            right.keys[i] = right.keys[i + 1];
+          }
+          right.children[i] = right.children[i + 1];
+        }
+
+        removeValueAndPrint(left, key);
+        return;
+      }
+
+
+      /*
+        Case 3c: Child does not have enough, but left sibling has a key to spare
+      */
+      if (childIdx > 0 && node.children[childIdx - 1].n >= M) {
+        childIdx--;
+        Node left = node.children[childIdx];
+        Node right = node.children[childIdx + 1];
+        Node sparedGrandchild = left.children[left.n];
+        int sparedKey = left.keys[left.n - 1];
+        int replaceKey = node.keys[childIdx];
+
+        // **
+        System.out.println("CASE 3C: " + sparedKey + " is taken from " + left.toString() + ", replacing " + replaceKey + ". The replaced " + replaceKey + " then goes to "  + right.toString());
+        // **
+
+        for (int i = right.n; i >= 0; i--) {
+          if (i < right.n) {
+            right.keys[i + 1] = right.keys[i];
+          }
+          right.children[i + 1] = right.children[i];
+        }
+
+        node.keys[childIdx] = sparedKey;
+        right.keys[0] = replaceKey;
+        right.children[0] = sparedGrandchild;
+        left.n--;
+        right.n++;
+
+        removeValueAndPrint(right, key);
+        return;
+      }
+
+      /* 
+        Case 3d: Right sibling also does not have enough. Merge the key
+                  with its two children.
+      */
+      int mergeIdx = (childIdx < node.n) ? childIdx : childIdx - 1;
+      Node left = node.children[mergeIdx];
+      Node right = node.children[mergeIdx + 1];
+      int mergeKey = node.keys[mergeIdx];
+
+      // **
+        System.out.println("CASE 3D: " + mergeKey + " is merged with " + left.toString() + " and " + right.toString());
+      // **
+
+      // move everything to the merged node
+      Node merge = left;
+      merge.keys[merge.n++] = mergeKey;
+      int tempSize = merge.n;
+
+      for (int i = tempSize, j = 0; j <= right.n; i++, j++) {
+        if (j < right.n) {
+          merge.keys[i] = right.keys[j];
+        }
+        merge.children[i] = right.children[j];
+      }
+      merge.n += right.n;
+
+      // remove key and right child from the current node
+      for (int i = mergeIdx; i < node.n - 1; i++) {
+        node.keys[i] = node.keys[i + 1];
+        node.children[i + 1] = node.children[i + 2];
+      } 
+      node.children[mergeIdx] = merge;
+      
+      // if node becomes empty, discard it 
+      node.n--;
+      if (node.n == 0) {
+        if (node == root) {
+          root = node.children[0];
+        }
+        node = node.children[0];
+      }
+
+      removeValueAndPrint(merge, key);
+    } 
+  } 
+
+  private void printTree() {
+    List<StringBuilder> tree = new ArrayList<>();
+    traverse(tree, root, 0);
+
+    for (int i = 0; i < tree.size(); i++) {
+      System.out.println(tree.get(i).toString());
+    }
+  }
+
+  private void traverse(List<StringBuilder> tree, Node node, int depth) {
+    if (depth == tree.size()) {
+      tree.add(new StringBuilder());
+    }
+    tree.get(depth).append(node.toString());
+
+    if (!node.isLeaf) {
+      for (int i = 0; i <= node.n; i++) {
+        traverse(tree, node.children[i], depth + 1);
+      }
+    }
+  }
+
+  /*
+    Main Method
+  */
+  public static void main(String[] args) {
+    int m_value = 3;
+    BTree btree = new BTree(m_value);
+
+    int range = 30;
+    int n = 30;
+    int logFreq = n;
+    List<Integer> insertedVals = new ArrayList<>();
+    for (int i = 1; i <= n; i++) {
+      int randVal = (int) (Math.random() * range) + 1;
+      insertedVals.add(randVal);
+      if (i % logFreq == 0) {
+        btree.insertAndPrint(randVal);
+      }
+      else {
+        btree.insert(randVal);
+        System.out.println(randVal + " is inserted");
+      }
+    }
+
+    btree.removeAndPrint(insertedVals.get(3));
+    btree.removeAndPrint(insertedVals.get(6));
+    btree.removeAndPrint(insertedVals.get(9));
+  }
+}
+
