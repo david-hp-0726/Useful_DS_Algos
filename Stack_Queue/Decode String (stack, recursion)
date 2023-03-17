@@ -1,0 +1,152 @@
+class Solution {
+    /*
+        Private Methods
+    */
+    private boolean isDigit(char c) {
+        return c >= '0' && c <= '9';
+    }
+
+    private boolean isLetter(char c) {
+        return c >= 'a' && c <= 'z';
+    }
+
+    /*
+        Solution 1: Using 1 stack
+    */
+    public String decodeString1(String s) {
+        Stack<Character> stack = new Stack<>();
+        
+        int idx = 0;
+        while (idx < s.length()) {
+            char character = s.charAt(idx);
+
+            // Only pop when we run into a closing bracket
+            if (character == ']') {
+                List<Character> chars = new ArrayList<>();
+                while (stack.peek() != '[') {
+                    chars.add(stack.pop());
+                }
+                stack.pop();
+
+                List<Character> digits = new ArrayList<>();
+                while (!stack.empty() && isDigit(stack.peek())) {
+                    digits.add(stack.pop());
+                }
+                int count = 0;
+                for (int i = digits.size() - 1; i >= 0; i--) {
+                    int digit = digits.get(i) - '0';
+                    count = count * 10 + digit;
+                }
+
+                for (int i = 0; i < count; i++) {
+                    for (int j = chars.size() - 1; j >= 0; j--) {
+                        stack.push(chars.get(j));
+                    }
+                }
+                idx++;
+            }
+            else {
+                stack.push(character);
+                idx++;
+            }
+        }
+
+        char[] charsArr = new char[stack.size()];
+        idx = stack.size() - 1;
+        while (!stack.empty()) {
+            charsArr[idx--] = stack.pop();
+        }
+        return new String(charsArr);
+    }
+
+    /*
+        Solution 2: Using 2 stacks
+    */
+    public String decodeString2(String s) {
+        Stack<Integer> countStack = new Stack<>();
+        Stack<StringBuilder> strStack = new Stack<>();
+        int idx = 0;
+        countStack.push(1);
+        strStack.push(new StringBuilder());
+
+        while (idx < s.length()) {
+            char character = s.charAt(idx);
+
+            if (isDigit(character)) {
+                int count = 0;
+                while (isDigit(s.charAt(idx))) {
+                    int digit = s.charAt(idx++) - '0';
+                    count = count * 10 + digit;
+                }
+                countStack.push(count);
+            }
+            else if (isLetter(character)) {
+                StringBuilder str = new StringBuilder();
+                while (idx < s.length() && isLetter(s.charAt(idx))) {
+                    str.append(s.charAt(idx++));
+                }
+
+                StringBuilder concatenatedStr = strStack.pop();
+                concatenatedStr.append(str);
+                strStack.push(concatenatedStr);
+            }
+            else if (character == '[') {
+                idx++;
+                StringBuilder str = new StringBuilder();
+                while (isLetter(s.charAt(idx))) {
+                    str.append(s.charAt(idx++));
+                }
+                strStack.push(str);
+            }
+            else {
+                idx++;
+                StringBuilder str = strStack.pop();
+                int count = countStack.pop();
+                StringBuilder repeatedStr = new StringBuilder();
+
+                for (int i = 0; i < count; i++) {
+                    repeatedStr.append(str);
+                }
+
+                StringBuilder concatenatedStr = strStack.pop();
+                concatenatedStr.append(repeatedStr);
+                strStack.push(concatenatedStr);
+            }
+        }
+
+        return strStack.pop().toString();
+    }
+
+    /*
+        Solution 3: Using Recursion
+    */
+    int idx = 0;
+    public String decodeString(String s) {
+        StringBuilder result = new StringBuilder();
+
+        while (idx < s.length() && s.charAt(idx) != ']') {
+            char character = s.charAt(idx);
+
+            if (isLetter(character)) {
+                result.append(s.charAt(idx++));
+            }
+            else if (isDigit(character)) {
+                int count = 0;
+                while (isDigit(s.charAt(idx))) {
+                    int digit = s.charAt(idx++) - '0';
+                    count = count * 10 + digit;
+                }
+                idx++;
+
+                String str = decodeString(s);
+                idx++;
+
+                for (int i = 0; i < count; i++) {
+                    result.append(str);
+                }
+            }
+        }
+
+        return result.toString();
+    }
+}
