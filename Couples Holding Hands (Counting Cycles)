@@ -1,0 +1,64 @@
+class Solution {
+    public int minSwapsCouples(int[] row) {
+        // Step 1: Map couples to couches
+        // couples[0] = {i, j} means the first couple are at couches i and j
+        // note that couches' index is 1-based
+        int[][] couples_to_couches = new int[row.length / 2][2];
+        for (int i = 0; i < row.length; i++) {
+            int couple = row[i] / 2;
+            int couch = i / 2 + 1;
+            add(couples_to_couches[couple], couch);
+        }
+
+        // Step 2: Map couches to connected couches 
+        // adj[0] = {i, j} means that the first person's spouse is at couch
+        // i and the second person's spouse is at couch j
+        int[][] adj = new int[row.length / 2  + 1][2];
+        for (int[] couple : couples_to_couches) {
+            int boyFriendCouch = couple[0];
+            int girlFriendCouch = couple[1];
+            add(adj[boyFriendCouch], girlFriendCouch);
+            add(adj[girlFriendCouch], boyFriendCouch);
+        }
+
+        // Step 3: Count the number of connected components
+        int numComponents = 0;
+        for (int couch = 1; couch <= row.length / 2; couch++) {
+            if (adj[couch][0] == 0 && adj[couch][1] == 0) {
+                continue;
+            }
+            numComponents++;
+
+            int slow = couch; 
+            int fast = pop(adj[couch]);
+            while (slow != fast) { 
+                // notice the two pointers will eventually converge at 0
+                remove(adj[fast], slow);
+                slow = fast;
+                fast = pop(adj[fast]);
+            }
+        }
+
+        return row.length / 2 - numComponents;
+    }
+
+    private void add(int[] pair, int value) {
+        pair[pair[0] == 0 ? 0 : 1] = value;
+    }
+
+    private void remove(int[] pair, int value) {
+        pair[pair[0] == value ? 0 : 1] = 0;
+    }
+
+    private int pop(int[] pair) {
+        int res = pair[0];
+        if (res != 0) {
+            pair[0] = 0;
+        }
+        else {
+            res = pair[1];
+            pair[1] = 0;
+        }
+        return res;
+    }
+}
